@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GCB PMIS — Contrôle Intégré de Projet EPC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    :root {
+      --navy:        #1C2331;
+      --navy-mid:    #22304A;
+      --navy-light:  #2C3F5C;
+      --gold:        #C9991A;
+      --gold-dark:   #A57C10;
+      --gold-light:  #E8B733;
+      --charcoal:    #2D2D2D;
+      --white:       #FFFFFF;
+      --off-white:   #F4F6F9;
+      --success:     #27AE60;
+      --danger:      #E74C3C;
+      --warning:     #F39C12;
+      --info:        #2980B9;
+      --purple:      #8E44AD;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+    body { background:var(--off-white); color:var(--charcoal); min-height:100vh; }
+
+    /* AUTH */
+    #authOverlay { position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,var(--navy),var(--navy-mid));z-index:9999;display:flex;justify-content:center;align-items:center; }
+    .auth-card { background:var(--white);padding:2.5rem;border-radius:12px;width:100%;max-width:440px;box-shadow:0 20px 40px rgba(0,0,0,0.4);border-top:5px solid var(--gold);text-align:center; }
+    .company-logo { width:90px;height:90px;background:var(--navy);border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto 1rem;border:3px solid var(--gold);color:var(--gold);font-size:2rem;font-weight:800; }
+    .auth-card h2 { color:var(--navy);margin-bottom:.2rem;font-weight:700;font-size:1.3rem; }
+    .auth-card p { color:#6B7585;font-size:.85rem;margin-bottom:1.5rem; }
+    .input-group { margin-bottom:1rem;text-align:left; }
+    .input-group label { display:block;font-size:.75rem;font-weight:700;color:var(--navy-light);margin-bottom:.3rem;text-transform:uppercase; }
+    .input-group input,.input-group select { width:100%;padding:.75rem;border:1px solid #D1D5DB;border-radius:6px;font-size:.9rem; }
+    .auth-btn { width:100%;padding:.85rem;background:var(--navy);color:var(--white);border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:.2s;letter-spacing:.5px;margin-top:.5rem; }
+    .auth-btn:hover { background:var(--gold);color:var(--navy); }
+    .auth-toggle { font-size:.82rem;color:var(--info);cursor:pointer;display:inline-block;margin-top:1rem;text-decoration:underline; }
+
+    /* LAYOUT */
+    #appContainer { display:none; }
+    .sidebar { width:300px;background:var(--navy);position:fixed;top:0;bottom:0;left:0;padding:1.5rem 1rem;color:var(--white);overflow-y:auto;display:flex;flex-direction:column;justify-content:space-between; }
+    .brand-area { display:flex;align-items:center;gap:12px;padding-bottom:1rem;border-bottom:1px solid var(--navy-light);margin-bottom:1rem; }
+    .mini-logo { width:45px;height:45px;background:var(--gold);border-radius:8px;display:flex;justify-content:center;align-items:center;color:var(--navy);font-weight:800;font-size:1.2rem; }
+    .brand-text h1 { font-size:1.15rem;font-weight:800;color:var(--white);letter-spacing:.5px; }
+    .brand-text p { font-size:.7rem;color:var(--gold);font-weight:600;text-transform:uppercase; }
+    .project-selector { margin-bottom:1.5rem;background:var(--navy-mid);padding:.75rem;border-radius:6px;border:1px solid var(--navy-light); }
+    .project-selector label { font-size:.7rem;text-transform:uppercase;color:#94A3B8;letter-spacing:1px;display:block;margin-bottom:.4rem;font-weight:700; }
+    .project-selector select { width:100%;padding:.5rem;background:var(--navy);border:1px solid var(--navy-light);color:var(--white);border-radius:4px;font-weight:500;font-size:.85rem;margin-bottom:.5rem; }
+    .add-project-box { display:flex;gap:4px; }
+    .add-project-box input { flex-grow:1;padding:.4rem;border:1px solid var(--navy-light);background:var(--navy);color:white;font-size:.75rem;border-radius:4px; }
+    .add-project-box button { background:var(--gold);border:none;color:var(--navy);padding:.4rem .6rem;font-weight:700;border-radius:4px;cursor:pointer;font-size:.75rem; }
+    .nav-menu { list-style:none;flex-grow:1; }
+    .nav-item { padding:.8rem 1rem;border-radius:6px;color:#94A3B8;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:.3rem;font-size:.88rem;font-weight:500;transition:.2s; }
+    .nav-item:hover,.nav-item.active { background:var(--navy-light);color:var(--white); }
+    .nav-item.active { border-left:4px solid var(--gold);color:var(--gold-light);font-weight:700; }
+    #nav-admin-only { display:none; }
+    .developer-credits { padding-top:1rem;border-top:1px solid var(--navy-light);text-align:center;font-size:.75rem;color:#94A3B8;font-weight:500; }
+    .developer-credits strong { color:var(--gold-light);font-weight:700;display:block;margin-top:2px; }
+    .main-content { margin-left:300px;padding:2rem; }
+    .header-bar { display:flex;justify-content:space-between;align-items:center;background:var(--white);padding:1rem 2rem;margin:-2rem -2rem 2rem -2rem;box-shadow:0 2px 10px rgba(0,0,0,.03);border-bottom:1px solid #E5E7EB; }
+    .current-project-title { font-size:1.3rem;color:var(--navy);font-weight:800; }
+    .user-badge-info { display:flex;align-items:center;gap:15px; }
+    .role-indicator { background:#E8F0FE;color:var(--info);padding:.3rem .6rem;border-radius:4px;font-size:.75rem;font-weight:700;text-transform:uppercase; }
+
+    /* CARDS & TABLES */
+    .topic-section { display:none; }
+    .topic-section.active { display:block; }
+    .card { background:var(--white);padding:1.75rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.03);margin-bottom:1.5rem;border:1px solid #E5E7EB; }
+    .card-title { font-size:1rem;color:var(--navy);font-weight:700;display:flex;align-items:center;gap:10px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:1rem; }
+    .card-subtitle { font-size:.85rem;color:#6B7585;margin-top:-.5rem;margin-bottom:1.2rem; }
+    .table-container { overflow-x:auto;margin-top:.5rem;border:1px solid #E5E7EB;border-radius:6px;background:var(--white); }
+    .gcb-table { width:100%;border-collapse:collapse;font-size:.82rem;white-space:nowrap; }
+    .gcb-table th { background:var(--navy-mid);text-align:left;padding:.9rem 1.2rem;color:var(--white);font-weight:600;font-size:.75rem;text-transform:uppercase;border-right:1px solid var(--navy-light);letter-spacing:.3px; }
+    .gcb-table td { padding:.8rem 1.2rem;border-bottom:1px solid #E5E7EB;border-right:1px solid #E5E7EB;color:var(--charcoal);font-weight:500; }
+    .gcb-table tr:hover { background:#F8FAFC; }
+    .gcb-table tr:last-child td { border-bottom:none; }
+    .table-select { padding:.3rem .5rem;border-radius:4px;border:1px solid #CBD5E1;font-size:.75rem;font-weight:600;background:#F8FAFC;cursor:pointer; }
+    .table-select.status-received { background:#E6F4EA;color:var(--success);border-color:#A3E4D7; }
+    .table-select.status-transit { background:#FEF3D6;color:var(--warning);border-color:#F9E79F; }
+    .table-select.status-alert { background:#FCE8E6;color:var(--danger);border-color:#F5B7B1; }
+    .quick-add-form { background:#F8FAFC;padding:1.5rem;border-radius:6px;margin-bottom:1.5rem;border:1px dashed #CBD5E1;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;align-items:flex-end; }
+    .form-field { display:flex;flex-direction:column;gap:6px; }
+    .form-field label { font-size:.72rem;font-weight:700;color:var(--navy-light);text-transform:uppercase; }
+    .form-field input,.form-field select { padding:.6rem;border:1px solid #CBD5E1;border-radius:4px;font-size:.85rem;background:var(--white); }
+    .form-field input:focus,.form-field select:focus { outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,153,26,.1); }
+    .form-field input[disabled] { background-color: #F8FAFC; cursor: not-allowed; color: #6B7585;}
+    .baseline-setter-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:15px;margin:1rem 0; }
+    .badge { padding:.3rem .6rem;border-radius:4px;font-size:.72rem;font-weight:700;display:inline-block;text-transform:uppercase; }
+    .badge-danger { background:#FCE8E6;color:var(--danger); }
+    .badge-warning { background:#FEF3D6;color:var(--warning); }
+    .badge-success { background:#E6F4EA;color:var(--success); }
+    .badge-info { background:#E8F0FE;color:var(--info); }
+    .btn { padding:.6rem 1.2rem;border:none;border-radius:4px;font-weight:700;cursor:pointer;font-size:.82rem;display:inline-flex;align-items:center;gap:8px;transition:.2s;text-transform:uppercase; }
+    .btn-primary { background:var(--navy);color:var(--white); }
+    .btn-primary:hover { background:var(--gold);color:var(--navy); }
+    .btn-success { background:var(--success);color:var(--white); }
+    .btn-danger { background:var(--danger);color:var(--white); }
+    .btn-danger-icon { background:none;color:var(--danger);font-size:1rem;padding:4px;border:none;cursor:pointer; }
+    .write-restricted { display:none !important; }
+
+    /* === PROFESSIONAL DASHBOARD === */
+    .topic-header { background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);color:var(--white);padding:1.5rem 2rem;border-radius:8px;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center; }
+    .topic-header h2 { font-size:1.2rem;font-weight:800;letter-spacing:.5px; }
+    .topic-header p { font-size:.78rem;color:rgba(255,255,255,.65);margin-top:3px; }
+    .topic-header-badge { background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:.4rem 1rem;border-radius:4px;font-size:.75rem;font-weight:700; }
+
+    /* KPI CARDS */
+    .kpi-row { display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem; }
+    .kpi-card { background:var(--white);border-radius:8px;padding:1.25rem 1.5rem;border:1px solid #E5E7EB;border-left:5px solid var(--navy);cursor:pointer;transition:all .2s;position:relative;overflow:hidden; }
+    .kpi-card:hover { transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.08); }
+    .kpi-card.kpi-blue { border-left-color:var(--info); }
+    .kpi-card.kpi-green { border-left-color:var(--success); }
+    .kpi-card.kpi-orange { border-left-color:var(--warning); }
+    .kpi-card.kpi-red { border-left-color:var(--danger); }
+    .kpi-card.kpi-purple { border-left-color:var(--purple); }
+    .kpi-label { font-size:.72rem;color:#6B7585;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.4rem; }
+    .kpi-value { font-size:2rem;font-weight:800;color:var(--navy);font-family:'Roboto Mono',monospace;line-height:1; }
+    .kpi-sub { font-size:.72rem;color:#94A3B8;margin-top:.3rem; }
+    .kpi-icon { position:absolute;top:1.25rem;right:1.5rem;font-size:1.8rem;opacity:.1;color:var(--navy); }
+
+    /* SECTION DIVIDERS */
+    .section-divider { display:flex;align-items:center;gap:1rem;margin:1.5rem 0 1rem; }
+    .section-divider span { font-size:.72rem;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1.5px;white-space:nowrap; }
+    .section-divider::before,.section-divider::after { content:'';flex:1;height:1px;background:#E5E7EB; }
+
+    /* QA/QC DASHBOARD */
+    .qa-stats-row { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.2rem; }
+    .qa-stat-block { background:var(--white);border-radius:8px;border:1px solid #E5E7EB;padding:1.2rem;display:flex;gap:1rem;align-items:center; }
+    .qa-stat-icon { width:52px;height:52px;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:1.4rem;flex-shrink:0; }
+    .qa-stat-icon.rfi { background:#EBF5FB;color:var(--info); }
+    .qa-stat-icon.ncr-open { background:#FCE8E6;color:var(--danger); }
+    .qa-stat-icon.ncr-closed { background:#E6F4EA;color:var(--success); }
+    .qa-stat-label { font-size:.72rem;color:#6B7585;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.25rem; }
+    .qa-stat-num { font-size:1.9rem;font-weight:800;color:var(--navy);font-family:'Roboto Mono',monospace; }
+    .qa-stat-desc { font-size:.72rem;color:#94A3B8;margin-top:2px; }
+
+    /* CHARTS */
+    .charts-grid { display:grid;grid-template-columns:1.5fr 1fr;gap:1.5rem;margin-bottom:1.5rem; }
+    @media(max-width:1200px) { .charts-grid{grid-template-columns:1fr;} .kpi-row{grid-template-columns:repeat(2,1fr);} .qa-stats-row{grid-template-columns:1fr 1fr;} }
+
+    /* SOUS-TRAITANT SPECIFIC */
+    .passation-badge { padding:.25rem .7rem;border-radius:20px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:inline-block; }
+    .passation-aon { background:#EBF5FB;color:#1A6B9A;border:1px solid #AED6F1; }
+    .passation-cf { background:#F4ECF7;color:#7D3C98;border:1px solid #D2B4DE; }
+    .passation-gre { background:#FEF9E7;color:#9A7D0A;border:1px solid #F9E79F; }
+    .passation-cs { background:#E9F7EF;color:#1E8449;border:1px solid #A9DFBF; }
+    .montant-cell { font-family:'Roboto Mono',monospace;font-weight:600;font-size:.82rem; }
+    .montant-deficit { color:var(--danger); }
+    .montant-ok { color:var(--success); }
+
+    /* DELIVERY PROGRESS */
+    .delivery-progress-bar { background:#E5E7EB;border-radius:20px;height:7px;width:100%;min-width:70px; }
+    .delivery-progress-fill { height:7px;border-radius:20px;background:var(--success);transition:width .3s; }
+    .delivery-progress-fill.warn { background:var(--warning); }
+    .delivery-progress-fill.low { background:var(--danger); }
+      
+    /* CONTRACT BANNER */
+    .contract-banner { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem; }
+    .contract-banner-card { background:var(--navy);border-radius:8px;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1rem;border:1px solid var(--navy-light);position:relative;overflow:hidden; }
+    .contract-banner-card::before { content:'';position:absolute;top:0;left:0;right:0;height:3px; }
+    .contract-banner-card.cb-montant::before { background:linear-gradient(90deg,var(--info),#56C2E8); }
+    .contract-banner-card.cb-consomme::before { background:linear-gradient(90deg,var(--warning),#F8C471); }
+    .contract-banner-card.cb-jours::before { background:linear-gradient(90deg,var(--success),#58D68D); }
+    .cb-icon { width:44px;height:44px;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:1.2rem;flex-shrink:0; }
+    .cb-montant .cb-icon { background:rgba(41,128,185,.2);color:#56C2E8; }
+    .cb-consomme .cb-icon { background:rgba(243,156,18,.2);color:#F8C471; }
+    .cb-jours .cb-icon { background:rgba(39,174,96,.2);color:#58D68D; }
+    .cb-label { font-size:.65rem;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.2rem; }
+    .cb-value { font-size:1.2rem;font-weight:800;color:var(--white);font-family:'Roboto Mono',monospace;line-height:1.1; }
+    .cb-sub { font-size:.68rem;color:rgba(255,255,255,.4);margin-top:.2rem; }
+    .cb-progress-wrap { margin-top:.4rem; }
+    .cb-progress-bar { height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden; }
+    .cb-progress-fill { height:100%;border-radius:2px;background:var(--warning);transition:width .4s; }
+    .cb-progress-fill.ok { background:var(--success); }
+    .cb-progress-fill.critical { background:var(--danger); }
+    .cb-pct { font-size:.65rem;color:rgba(255,255,255,.5);margin-top:2px; }
+
+    /* TDB HISTORY PANEL */
+    .tdb-layout { display:grid;grid-template-columns:220px 1fr;gap:1.2rem;align-items:start; }
+    .tdb-history-panel { background:var(--white);border-radius:8px;border:1px solid #E5E7EB;padding:1rem;position:sticky;top:1rem; }
+    .tdb-history-title { font-size:.7rem;font-weight:800;text-transform:uppercase;color:var(--navy-light);letter-spacing:.8px;margin-bottom:.75rem;display:flex;align-items:center;gap:6px; }
+    .tdb-month-item { display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-radius:5px;cursor:pointer;margin-bottom:.3rem;border:1px solid transparent;transition:all .15s;font-size:.8rem;font-weight:600;color:#4B5563; }
+    .tdb-month-item:hover { background:#F8FAFC;border-color:#E5E7EB;color:var(--navy); }
+    .tdb-month-item.active { background:var(--navy);color:var(--white);border-color:var(--navy); }
+    .tdb-month-item .tdb-month-label { display:flex;flex-direction:column; }
+    .tdb-month-item .tdb-month-name { font-weight:700; }
+    .tdb-month-item .tdb-month-year { font-size:.65rem;opacity:.6; }
+    .tdb-month-del { background:none;border:none;cursor:pointer;color:inherit;opacity:.4;padding:2px 4px;border-radius:3px;font-size:.75rem; }
+    .tdb-month-del:hover { opacity:1;color:var(--danger); }
+    .tdb-history-empty { font-size:.78rem;color:#94A3B8;text-align:center;padding:1rem 0;font-style:italic; }
+    .tdb-new-btn { width:100%;padding:.55rem;background:var(--navy);color:var(--white);border:none;border-radius:5px;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:.75rem;transition:.2s; }
+    .tdb-new-btn:hover { background:var(--gold);color:var(--navy); }
+
+    /* MONTHLY DASHBOARD */
+    .tdb-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .tdb-table th, .tdb-table td { border:1px solid #E5E7EB; padding:.6rem .8rem; text-align:left; }
+    .tdb-table th { background:#F8FAFC; font-weight:700; font-size:.7rem; text-transform:uppercase; text-align:center; }
+    .tdb-table td input { width:100%; border:1px solid transparent; padding:.4rem; border-radius:4px; font-family:'Roboto Mono',monospace; text-align:right; font-size:.82rem; }
+    .tdb-table td input:hover { border-color:#CBD5E1; }
+    .tdb-table td input:focus { border-color:var(--gold); background:#FFF; outline:none; box-shadow:0 0 0 3px rgba(201,153,26,.1); }
+    .tdb-table .designation { font-weight:600; color:var(--navy); }
+    .tdb-table .sub-designation { padding-left:2rem; font-weight:500; }
+    .tdb-table .total-row { background:var(--navy-mid); color:var(--white); font-weight:800; }
+    .tdb-table .total-row td { font-weight:800; }
+    .tdb-table .result-row { background:var(--gold-light); color:var(--navy); font-weight:800; }
+    .tdb-table .result-row td { font-weight:800; }
+    .tdb-table .header-row { background:var(--navy-light); color:var(--white); font-size:.8rem; font-weight:700; }
+    .tdb-table input[disabled] { background:transparent; color:inherit; font-weight:700; cursor:not-allowed; border:none !important; }
+      
+    /* CONTRACT INFO SECTION */
+    .consumption-progress-bar-bg { width: 100%; background-color: #e9ecef; border-radius: 5px; height: 12px; }
+    .consumption-progress-bar-fill { height: 100%; border-radius: 5px; background-color: var(--success); transition: width 0.3s ease-in-out; }
+    .consumption-progress-bar-fill.warn { background-color: var(--warning); }
+    .consumption-progress-bar-fill.danger { background-color: var(--danger); }
+    .consumption-label { font-size: .75rem; font-weight: 700; color: var(--navy-light); text-align: center; margin-top: 4px; }
+
+
+  </style>
+</head>
+<body>
+
+<div id="authOverlay">
+  <div class="auth-card">
+    <div class="company-logo">GCB</div>
+    <h2 id="authTitle">PMIS — Direction Contrôle de Projet</h2>
+    <p id="authSubtitle">Connectez-vous à votre espace de travail</p>
+    <div class="input-group" id="fullNameGroup" style="display:none;">
+      <label>Nom & Prénom</label><input type="text" id="authName" placeholder="Ex: Abdelwahab Ghomri">
+    </div>
+    <div class="input-group">
+      <label>Identifiant Email</label><input type="email" id="authEmail" placeholder="nom.prenom@gcb.dz">
+    </div>
+    <div class="input-group">
+      <label>Mot de passe</label><input type="password" id="authPassword" placeholder="••••••••">
+    </div>
+    <div class="input-group" id="roleSelectionGroup" style="display:none;">
+      <label>Demande de Rôle Initial</label>
+      <select id="authRole">
+        <option value="viewer">Lecture Seule (Viewer)</option>
+        <option value="editor">Modification & Saisie (Editor)</option>
+      </select>
+    </div>
+    <button class="auth-btn" onclick="processAuth()">Se connecter</button>
+    <div class="auth-toggle" onclick="toggleAuthMode()">Pas encore de compte ? S'inscrire</div>
+  </div>
+</div>
+
+<div id="appContainer">
+  <div class="sidebar">
+    <div>
+      <div class="brand-area">
+        <div class="mini-logo">G</div>
+        <div class="brand-text">
+          <h1>GCB Control v5.3</h1>
+          <p>Division Grands Projets EPC</p>
+        </div>
+      </div>
+      <div class="project-selector">
+        <label>Projet Actif</label>
+        <select id="projectSelect" onchange="updateProjectView()"></select>
+        <div class="add-project-box write-lockable">
+          <input type="text" id="newProjectName" placeholder="Nouveau projet...">
+          <button onclick="createNewProject()"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item active" onclick="switchTopic('dashboard')"><i class="fa-solid fa-chart-line"></i> 1. Vue Globale & Courbe S</li>
+        <li class="nav-item" onclick="switchTopic('planning')"><i class="fa-solid fa-sitemap"></i> 2. Planning & Baseline</li>
+        <li class="nav-item" onclick="switchTopic('stock')"><i class="fa-solid fa-warehouse"></i> 3. Stock & Logistique</li>
+        <li class="nav-item" onclick="switchTopic('qualite')"><i class="fa-solid fa-file-shield"></i> 4. QA/QC, RFI & NCR</li>
+        <li class="nav-item" onclick="switchTopic('articles')"><i class="fa-solid fa-truck-ramp-box"></i> 5. Supply Chain (DA)</li>
+        <li class="nav-item" onclick="switchTopic('soustraitant')"><i class="fa-solid fa-handshake"></i> 6. Sous-Traitants</li>
+        <li class="nav-item" onclick="switchTopic('monthly-dashboard')"><i class="fa-solid fa-file-invoice-dollar"></i> 7. Tableau de bord mensuel</li>
+        <li class="nav-item" id="nav-admin-only" onclick="switchTopic('admin')"><i class="fa-solid fa-users-gear"></i> Gestion Utilisateurs</li>
+      </ul>
+    </div>
+    <div class="developer-credits">Application optimisée et<strong>Développé par Ghomri Abdelwahab</strong></div>
+  </div>
+
+  <div class="main-content">
+    <div class="header-bar">
+      <div class="current-project-title" id="currentProjectDisplay">---</div>
+      <div class="user-badge-info">
+        <span id="userDisplayEmail" style="font-weight:600;font-size:.85rem;color:var(--navy-light);"></span>
+        <span class="role-indicator" id="userDisplayRole">Viewer</span>
+        <button class="btn btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Quitter</button>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div id="topic-dashboard" class="topic-section active">
+      <div class="topic-header">
+        <div>
+          <h2><i class="fa-solid fa-chart-line" style="color:var(--gold-light);margin-right:10px;"></i>Vue Globale du Projet EPC</h2>
+          <p>Tableau de bord intégré — Performance, Qualité, Logistique & Sous-Traitance</p>
+        </div>
+        <div class="topic-header-badge" id="dash-date-badge">—</div>
+      </div>
+
+      <!-- CONTRACT BANNER -->
+      <div class="contract-banner" id="contract-banner">
+        <div class="contract-banner-card cb-montant">
+          <div class="cb-icon"><i class="fa-solid fa-file-contract"></i></div>
+          <div style="flex:1;min-width:0;">
+            <div class="cb-label">Montant du Contrat TTC</div>
+            <div class="cb-value" id="banner-contract-ttc">— DA</div>
+            <div class="cb-sub" id="banner-contract-ht">HT : — DA</div>
+          </div>
+        </div>
+        <div class="contract-banner-card cb-consomme">
+          <div class="cb-icon"><i class="fa-solid fa-chart-pie"></i></div>
+          <div style="flex:1;min-width:0;">
+            <div class="cb-label">Montant Consommé</div>
+            <div class="cb-value" id="banner-consumed">— DA</div>
+            <div class="cb-progress-wrap">
+              <div class="cb-progress-bar"><div class="cb-progress-fill" id="banner-consumed-bar" style="width:0%"></div></div>
+              <div class="cb-pct" id="banner-consumed-pct">— % du contrat TTC</div>
+            </div>
+          </div>
+        </div>
+        <div class="contract-banner-card cb-jours">
+          <div class="cb-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div style="flex:1;min-width:0;">
+            <div class="cb-label">Jours Restants</div>
+            <div class="cb-value" id="banner-days-remaining">—</div>
+            <div class="cb-sub" id="banner-days-sub">Date fin non définie</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Row 1 -->
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue" onclick="switchTopic('planning')">
+          <i class="fa-solid fa-gauge-high kpi-icon"></i>
+          <div class="kpi-label">Avancement Physique</div>
+          <div class="kpi-value" id="dash-physical-progress">0.00%</div>
+          <div class="kpi-sub">Pondéré WBS — Réel</div>
+        </div>
+        <div class="kpi-card kpi-orange" onclick="switchTopic('stock')">
+          <i class="fa-solid fa-triangle-exclamation kpi-icon"></i>
+          <div class="kpi-label">Ruptures Matériaux</div>
+          <div class="kpi-value" id="dash-stock-alerts" style="color:var(--danger);">0</div>
+          <div class="kpi-sub">Alertes logistiques critiques</div>
+        </div>
+        <div class="kpi-card kpi-green" onclick="switchTopic('articles')">
+          <i class="fa-solid fa-truck kpi-icon"></i>
+          <div class="kpi-label">Articles en Transit</div>
+          <div class="kpi-value" id="dash-transit-count" style="color:var(--warning);">0</div>
+          <div class="kpi-sub">Commandes émises & en route</div>
+        </div>
+        <div class="kpi-card kpi-red" onclick="switchTopic('qualite')">
+          <i class="fa-solid fa-circle-exclamation kpi-icon"></i>
+          <div class="kpi-label">NCR Ouvertes</div>
+          <div class="kpi-value" id="dash-active-ncr" style="color:var(--danger);">0</div>
+          <div class="kpi-sub">Écarts qualité non résolus</div>
+        </div>
+      </div>
+
+      <!-- QA/QC Section -->
+      <div class="section-divider"><span><i class="fa-solid fa-file-shield" style="margin-right:6px;"></i>Statut QA/QC — Détail RFI & NCR</span></div>
+      <div class="qa-stats-row">
+        <div class="qa-stat-block">
+          <div class="qa-stat-icon rfi"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div>
+            <div class="qa-stat-label">RFI — Inspections</div>
+            <div class="qa-stat-num" id="dash-rfi-total">0</div>
+            <div class="qa-stat-desc"><span id="dash-rfi-open" style="color:var(--warning);">0 ouvertes</span> &nbsp;·&nbsp; <span id="dash-rfi-closed" style="color:var(--success);">0 closes</span></div>
+          </div>
+        </div>
+        <div class="qa-stat-block">
+          <div class="qa-stat-icon ncr-open"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div>
+            <div class="qa-stat-label">NCR — Non-Conformités</div>
+            <div class="qa-stat-num" id="dash-ncr-total">0</div>
+            <div class="qa-stat-desc"><span id="dash-ncr-open2" style="color:var(--danger);">0 ouvertes</span> &nbsp;·&nbsp; <span id="dash-ncr-closed2" style="color:var(--success);">0 résolues</span></div>
+          </div>
+        </div>
+        <div class="qa-stat-block">
+          <div class="qa-stat-icon ncr-closed"><i class="fa-solid fa-check-circle"></i></div>
+          <div>
+            <div class="qa-stat-label">Taux de Résolution</div>
+            <div class="qa-stat-num" id="dash-resolution-rate" style="color:var(--success);">—%</div>
+            <div class="qa-stat-desc">Fiches closes / total émises</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="section-divider"><span><i class="fa-solid fa-chart-area" style="margin-right:6px;"></i>Courbe S & Analyses Graphiques</span></div>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;">
+        <div class="card" style="margin:0;">
+          <div class="card-title"><i class="fa-solid fa-chart-line"></i> Courbe S — Réel vs Baseline</div>
+          <div style="position:relative;height:220px;"><canvas id="mainDashboardChart"></canvas></div>
+        </div>
+        <div class="card" style="margin:0;">
+          <div class="card-title"><i class="fa-solid fa-boxes-packing"></i> Flux Logistique</div>
+          <div style="position:relative;height:220px;"><canvas id="logisticsChart"></canvas></div>
+        </div>
+        <div class="card" style="margin:0;">
+          <div class="card-title"><i class="fa-solid fa-chart-bar"></i> QA/QC Distribution</div>
+          <div style="position:relative;height:220px;"><canvas id="qualityChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Sous-traitants KPIs -->
+      <div class="section-divider"><span><i class="fa-solid fa-handshake" style="margin-right:6px;"></i>Sous-Traitance — Synthèse Financière</span></div>
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue" onclick="switchTopic('soustraitant')">
+          <i class="fa-solid fa-file-contract kpi-icon"></i>
+          <div class="kpi-label">Contrats Actifs</div>
+          <div class="kpi-value" id="dash-st-count">0</div>
+          <div class="kpi-sub">Sous-traitants enregistrés</div>
+        </div>
+        <div class="kpi-card kpi-orange" onclick="switchTopic('soustraitant')">
+          <i class="fa-solid fa-coins kpi-icon"></i>
+          <div class="kpi-label">Montant DRO Déclaré</div>
+          <div class="kpi-value" style="font-size:1.2rem;" id="dash-st-dro">— DA</div>
+          <div class="kpi-sub">Budget sous-traitance alloué</div>
+        </div>
+        <div class="kpi-card kpi-green" onclick="switchTopic('soustraitant')">
+          <i class="fa-solid fa-receipt kpi-icon"></i>
+          <div class="kpi-label">Total Facturé</div>
+          <div class="kpi-value" style="font-size:1.2rem;" id="dash-st-facture">— DA</div>
+          <div class="kpi-sub">Cumul factures reçues</div>
+        </div>
+        <div class="kpi-card kpi-red" onclick="switchTopic('soustraitant')">
+          <i class="fa-solid fa-scale-unbalanced kpi-icon"></i>
+          <div class="kpi-label">Écart DRO / Facturé</div>
+          <div class="kpi-value" style="font-size:1.2rem;" id="dash-st-ecart">— DA</div>
+          <div class="kpi-sub">Dépassement ou économie</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PLANNING ===== -->
+    <div id="topic-planning" class="topic-section">
+      <div class="topic-header">
+        <div><h2><i class="fa-solid fa-sitemap" style="color:var(--gold-light);margin-right:10px;"></i>Planning & Baseline</h2><p>Suivi WBS pondéré et configuration de la Courbe S</p></div>
+        <div class="topic-header-badge">Données Centrales</div>
+      </div>
+        
+      <!-- Contract Info Card -->
+      <div class="card write-lockable">
+          <div class="card-title"><i class="fa-solid fa-file-signature"></i> Informations sur le Contrat</div>
+          <div class="quick-add-form" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: start; gap: 20px;">
+              <!-- Left Column -->
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div class="form-field"><label>N° de Contrat</label><input type="text" id="contract_number"></div>
+                  <div class="form-field"><label>Client</label><input type="text" id="contract_client"></div>
+                  <div class="form-field">
+                      <label>Type de Passation</label>
+                      <select id="contract_passation_type">
+                          <option value=""></option>
+                          <option value="Consultation Fournisseur">Consultation Fournisseur</option>
+                          <option value="AON">AON (Appel d'Offres National)</option>
+                          <option value="Gré à Gré Simple">Gré à Gré Simple</option>
+                          <option value="Commande Sans Consultation">Commande Sans Consultation</option>
+                      </select>
+                  </div>
+              </div>
+              <!-- Middle Column -->
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div class="form-field"><label>Montant du Contrat HT (DA)</label><input type="number" id="contract_amount_ht"></div>
+                  <div class="form-field"><label>Taux de TVA (%)</label><input type="number" id="contract_tva_rate" value="19"></div>
+                  <div class="form-field"><label>Montant du Contrat TTC</label><input type="text" id="contract_amount_ttc" disabled></div>
+              </div>
+              <!-- Right Column -->
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div class="form-field"><label>Montant Consommé (DA)</label><input type="number" id="contract_amount_consumed"></div>
+                  <div class="form-field">
+                      <label>Pourcentage Consommé</label>
+                      <div class="consumption-progress-bar-bg">
+                          <div id="consumption-percentage-bar" class="consumption-progress-bar-fill"></div>
+                      </div>
+                      <div id="consumption-percentage-text" class="consumption-label">— %</div>
+                  </div>
+              </div>
+              <!-- Bottom Row -->
+              <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 10px;">
+                <div class="form-field"><label>Durée du Contrat (mois)</label><input type="number" id="contract_duration"></div>
+                <div class="form-field"><label>Date de Signature</label><input type="date" id="contract_signature_date"></div>
+                <div class="form-field"><label>Date d'ODS</label><input type="date" id="contract_ods_date"></div>
+              </div>
+          </div>
+          <button class="btn btn-success" onclick="saveContractInfo()" style="margin-top: 1rem;"><i class="fa-solid fa-save"></i> Enregistrer les Informations</button>
+      </div>
+        
+      <div class="card write-lockable" style="border-top:4px solid var(--gold);">
+        <div class="card-title"><i class="fa-solid fa-sliders"></i> Configuration de la Baseline (Planned Value %)</div>
+        <div class="card-subtitle">Définissez la période du projet pour générer les points de la courbe S.</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; align-items:flex-end; margin-bottom:1rem;">
+            <div class="form-field">
+                <label>Date de Début du Projet</label>
+                <input type="date" id="baseline_start_date">
+            </div>
+            <div class="form-field">
+                <label>Date de Fin du Projet</label>
+                <input type="date" id="baseline_end_date">
+            </div>
+            <button class="btn btn-primary" onclick="generateBaselineFields()"><i class="fa-solid fa-cogs"></i> Générer la structure</button>
+        </div>
+        <div class="section-divider"><span>Saisir les pourcentages cumulés planifiés pour chaque mois</span></div>
+        <div id="baseline-fields-container" class="baseline-setter-grid">
+           <p style="color:#6B7585; font-size:0.85rem; grid-column: 1 / -1;">Veuillez définir une période et cliquer sur 'Générer' pour afficher les champs de saisie de la baseline.</p>
+        </div>
+        <button class="btn btn-success" onclick="applyNewBaseline()" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Appliquer et Sauvegarder la Baseline</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i> Planning — Activités Niveau 3</div>
+        <div class="quick-add-form write-lockable">
+          <div class="form-field"><label>WBS</label><input type="text" id="p_wbs" value="1.2.1"></div>
+          <div class="form-field"><label>Intitulé Travaux</label><input type="text" id="p_task" placeholder="Soudage Ligne Pipe"></div>
+          <div class="form-field"><label>Poids (%)</label><input type="number" id="p_weight" value="15"></div>
+          <div class="form-field"><label>Avancement (%)</label><input type="number" id="p_progress" value="0"></div>
+          <div class="form-field"><label>Début</label><input type="date" id="p_start" value="2026-06-01"></div>
+          <div class="form-field"><label>Fin Prévue</label><input type="date" id="p_end" value="2026-07-15"></div>
+          <button class="btn btn-success" onclick="addPlanningRow()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+        </div>
+        <div class="table-container">
+          <table class="gcb-table" id="planningTable">
+            <thead><tr>
+              <th>Code WBS</th><th>Désignation des Activités</th><th>Poids Pondéré</th>
+              <th>Avancement Réel</th><th>Date Début</th><th>Date Fin</th>
+              <th>Contribution (%)</th><th class="write-lockable">Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+      
+    <!-- ===== TABLEAU DE BORD MENSUEL ===== -->
+    <div id="topic-monthly-dashboard" class="topic-section">
+      <div class="topic-header">
+          <div><h2><i class="fa-solid fa-file-invoice-dollar" style="color:var(--gold-light);margin-right:10px;"></i>Tableau de Bord Financier Mensuel</h2><p>Saisie et suivi des charges et produits par mois (en kDA)</p></div>
+          <div class="topic-header-badge">Contrôle de Gestion</div>
+      </div>
+      <!-- Hidden inputs preserved for JS compatibility -->
+      <input type="hidden" id="tdb-month-select" value="0">
+      <input type="hidden" id="tdb-year-input" value="2025">
+
+      <!-- New Period Modal -->
+      <div id="tdb-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:8000;justify-content:center;align-items:center;">
+        <div style="background:var(--white);border-radius:10px;padding:2rem;width:340px;border-top:4px solid var(--gold);">
+          <div style="font-size:1rem;font-weight:800;color:var(--navy);margin-bottom:1.2rem;"><i class="fa-solid fa-calendar-plus" style="color:var(--gold);margin-right:8px;"></i>Créer / Ouvrir une Période</div>
+          <div class="form-field" style="margin-bottom:1rem;">
+            <label>Mois</label>
+            <select id="modal-month-select" style="width:100%;padding:.65rem;border:1px solid #CBD5E1;border-radius:5px;font-size:.9rem;">
+              <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option><option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option><option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option><option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
+            </select>
+          </div>
+          <div class="form-field" style="margin-bottom:1.5rem;">
+            <label>Année</label>
+            <input type="number" id="modal-year-input" value="2025" style="width:100%;padding:.65rem;border:1px solid #CBD5E1;border-radius:5px;font-size:.9rem;">
+          </div>
+          <div style="display:flex;gap:.75rem;">
+            <button class="btn btn-primary" style="flex:1;" onclick="confirmNewPeriod()"><i class="fa-solid fa-check"></i> Ouvrir</button>
+            <button class="btn" style="background:#F1F5F9;color:var(--navy);" onclick="document.getElementById('tdb-modal').style.display='none';">Annuler</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tdb-layout">
+        <!-- LEFT: History Panel -->
+        <div class="tdb-history-panel">
+          <div class="tdb-history-title"><i class="fa-solid fa-clock-rotate-left"></i> Périodes Enregistrées</div>
+          <button class="tdb-new-btn" onclick="openNewPeriodModal()"><i class="fa-solid fa-plus"></i> Nouveau Mois</button>
+          <div id="tdb-history-list"><div class="tdb-history-empty">Aucune période enregistrée.</div></div>
+        </div>
+
+        <!-- RIGHT: Table Card -->
+        <div>
+          <div class="card" style="margin-bottom:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;">
+              <div class="card-title" style="margin:0;" id="tdb-current-period-title"><i class="fa-solid fa-calendar-alt"></i> <span id="tdb-period-label">Sélectionnez ou créez une période</span></div>
+              <button class="btn btn-success write-lockable" onclick="saveTDBData()" id="tdb-save-btn" style="display:none;"><i class="fa-solid fa-save"></i> Sauvegarder</button>
+            </div>
+          <div class="table-container">
+              <table class="tdb-table" id="tdbTable">
+                  <thead>
+                      <tr>
+                          <th rowspan="2" style="width:40%;">Désignation</th>
+                          <th colspan="3">Mois en cours</th>
+                          <th colspan="3">Cumul</th>
+                      </tr>
+                      <tr>
+                          <th>Budget (kDA)</th><th>Réalisé (kDA)</th><th>%</th>
+                          <th>Budget (kDA)</th><th>Réalisé (kDA)</th><th>%</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <!-- I. PRODUITS -->
+                      <tr class="header-row"><td colspan="7">I. TOTAL PRODUITS</td></tr>
+                      <tr>
+                          <td class="designation">70 - Ventes de produits et de services</td>
+                          <td><input type="number" data-row="p_70" data-col="budget_m"></td>
+                          <td><input type="number" data-row="p_70" data-col="real_m"></td>
+                          <td><input type="text" data-row="p_70" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="p_70" data-col="budget_c"></td>
+                          <td><input type="number" data-row="p_70" data-col="real_c"></td>
+                          <td><input type="text" data-row="p_70" data-col="pct_c" disabled></td>
+                      </tr>
+                      <!-- ... Other product rows if needed -->
+                      <tr class="total-row">
+                          <td>Total Produits (I)</td>
+                          <td><input type="text" data-total="produits" data-col="budget_m" disabled></td>
+                          <td><input type="text" data-total="produits" data-col="real_m" disabled></td>
+                          <td><input type="text" data-total="produits" data-col="pct_m" disabled></td>
+                          <td><input type="text" data-total="produits" data-col="budget_c" disabled></td>
+                          <td><input type="text" data-total="produits" data-col="real_c" disabled></td>
+                          <td><input type="text" data-total="produits" data-col="pct_c" disabled></td>
+                      </tr>
+                      <!-- IV. CHARGES DIRECTES -->
+                      <tr class="header-row"><td colspan="7">IV. CHARGES DIRECTES</td></tr>
+                      <tr>
+                          <td class="sub-designation">60 - Achats consommés</td>
+                          <td><input type="number" data-row="c_60" data-col="budget_m"></td>
+                          <td><input type="number" data-row="c_60" data-col="real_m"></td>
+                          <td><input type="text" data-row="c_60" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="c_60" data-col="budget_c"></td>
+                          <td><input type="number" data-row="c_60" data-col="real_c"></td>
+                          <td><input type="text" data-row="c_60" data-col="pct_c" disabled></td>
+                      </tr>
+                      <tr>
+                          <td class="sub-designation">61/62 - Services extérieurs</td>
+                          <td><input type="number" data-row="c_61" data-col="budget_m"></td>
+                          <td><input type="number" data-row="c_61" data-col="real_m"></td>
+                          <td><input type="text" data-row="c_61" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="c_61" data-col="budget_c"></td>
+                          <td><input type="number" data-row="c_61" data-col="real_c"></td>
+                          <td><input type="text" data-row="c_61" data-col="pct_c" disabled></td>
+                      </tr>
+                      <tr>
+                          <td class="sub-designation">63 - Charges de personnel</td>
+                          <td><input type="number" data-row="c_63" data-col="budget_m"></td>
+                          <td><input type="number" data-row="c_63" data-col="real_m"></td>
+                          <td><input type="text" data-row="c_63" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="c_63" data-col="budget_c"></td>
+                          <td><input type="number" data-row="c_63" data-col="real_c"></td>
+                          <td><input type="text" data-row="c_63" data-col="pct_c" disabled></td>
+                      </tr>
+                       <tr>
+                          <td class="sub-designation">68 - Dotations aux amortissements</td>
+                          <td><input type="number" data-row="c_68" data-col="budget_m"></td>
+                          <td><input type="number" data-row="c_68" data-col="real_m"></td>
+                          <td><input type="text" data-row="c_68" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="c_68" data-col="budget_c"></td>
+                          <td><input type="number" data-row="c_68" data-col="real_c"></td>
+                          <td><input type="text" data-row="c_68" data-col="pct_c" disabled></td>
+                      </tr>
+                      <tr class="total-row">
+                          <td>Total Charges Directes (IV)</td>
+                          <td><input type="text" data-total="charges_directes" data-col="budget_m" disabled></td>
+                          <td><input type="text" data-total="charges_directes" data-col="real_m" disabled></td>
+                          <td><input type="text" data-total="charges_directes" data-col="pct_m" disabled></td>
+                          <td><input type="text" data-total="charges_directes" data-col="budget_c" disabled></td>
+                          <td><input type="text" data-total="charges_directes" data-col="real_c" disabled></td>
+                          <td><input type="text" data-total="charges_directes" data-col="pct_c" disabled></td>
+                      </tr>
+                       <!-- V. CHARGES INDIRECTES -->
+                      <tr class="header-row"><td colspan="7">V. CHARGES INDIRECTES</td></tr>
+                      <tr>
+                          <td class="sub-designation">Frais de support projet</td>
+                          <td><input type="number" data-row="ci_support" data-col="budget_m"></td>
+                          <td><input type="number" data-row="ci_support" data-col="real_m"></td>
+                          <td><input type="text" data-row="ci_support" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="ci_support" data-col="budget_c"></td>
+                          <td><input type="number" data-row="ci_support" data-col="real_c"></td>
+                          <td><input type="text" data-row="ci_support" data-col="pct_c" disabled></td>
+                      </tr>
+                      <tr>
+                          <td class="sub-designation">Frais de siège</td>
+                          <td><input type="number" data-row="ci_siege" data-col="budget_m"></td>
+                          <td><input type="number" data-row="ci_siege" data-col="real_m"></td>
+                          <td><input type="text" data-row="ci_siege" data-col="pct_m" disabled></td>
+                          <td><input type="number" data-row="ci_siege" data-col="budget_c"></td>
+                          <td><input type="number" data-row="ci_siege" data-col="real_c"></td>
+                          <td><input type="text" data-row="ci_siege" data-col="pct_c" disabled></td>
+                      </tr>
+                       <tr class="total-row">
+                          <td>Total Charges Indirectes (V)</td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="budget_m" disabled></td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="real_m" disabled></td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="pct_m" disabled></td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="budget_c" disabled></td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="real_c" disabled></td>
+                          <td><input type="text" data-total="charges_indirectes" data-col="pct_c" disabled></td>
+                      </tr>
+                      <tr class="total-row" style="background:var(--navy-dark);">
+                          <td>III. TOTAL DES CHARGES (IV+V)</td>
+                          <td><input type="text" data-total="charges_global" data-col="budget_m" disabled></td>
+                          <td><input type="text" data-total="charges_global" data-col="real_m" disabled></td>
+                          <td><input type="text" data-total="charges_global" data-col="pct_m" disabled></td>
+                          <td><input type="text" data-total="charges_global" data-col="budget_c" disabled></td>
+                          <td><input type="text" data-total="charges_global" data-col="real_c" disabled></td>
+                          <td><input type="text" data-total="charges_global" data-col="pct_c" disabled></td>
+                      </tr>
+                      <!-- VI. RESULTAT -->
+                      <tr class="result-row">
+                          <td>VI. RESULTAT OPERATIONNEL (I - III)</td>
+                          <td><input type="text" data-total="resultat" data-col="budget_m" disabled></td>
+                          <td><input type="text" data-total="resultat" data-col="real_m" disabled></td>
+                          <td><input type="text" data-total="resultat" data-col="pct_m" disabled></td>
+                          <td><input type="text" data-total="resultat" data-col="budget_c" disabled></td>
+                          <td><input type="text" data-total="resultat" data-col="real_c" disabled></td>
+                          <td><input type="text" data-total="resultat" data-col="pct_c" disabled></td>
+                      </tr>
+                  </tbody>
+              </table>
+          </div>
+          </div> <!-- end card -->
+        </div> <!-- end right col -->
+      </div> <!-- end tdb-layout -->
+  </div> <!-- end topic-monthly-dashboard -->
+
+
+    <!-- ===== STOCK ===== -->
+    <div id="topic-stock" class="topic-section">
+      <div class="topic-header">
+        <div><h2><i class="fa-solid fa-boxes-packing" style="color:var(--gold-light);margin-right:10px;"></i>Stock & Logistique</h2><p>Traçabilité matériaux — Quantités commandées, livrées & reliquats</p></div>
+        <div class="topic-header-badge">MR Tracker</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-boxes-packing"></i> Traçabilité Logistique Matériaux</div>
+        <div class="quick-add-form write-lockable">
+          <div class="form-field"><label>N° MR</label><input type="text" id="s_mr" value="MR-045-LPG"></div>
+          <div class="form-field"><label>Spécification</label><input type="text" id="s_item" placeholder="Tube Acier Carbone"></div>
+          <div class="form-field"><label>Date DA</label><input type="date" id="s_date" value="2026-05-15"></div>
+          <div class="form-field"><label>Heat No</label><input type="text" id="s_heat" value="H-9411"></div>
+          <div class="form-field"><label>Qté Commandée</label><input type="number" id="s_qty" value="350"></div>
+          <div class="form-field"><label>Qté Livrée</label><input type="number" id="s_qty_livree" value="0"></div>
+          <div class="form-field"><label>Date Livraison</label><input type="date" id="s_date_livraison"></div>
+          <div class="form-field"><label>Statut</label>
+            <select id="s_status">
+              <option value="Sur Site / Reçu">Sur Site / Reçu</option>
+              <option value="En Transit">En Transit</option>
+              <option value="Rupture / Attente">Rupture / Attente</option>
+            </select>
+          </div>
+          <button class="btn btn-success" onclick="addStockRow()"><i class="fa-solid fa-plus"></i> Enregistrer</button>
+        </div>
+        <div class="table-container">
+          <table class="gcb-table" id="stockTable">
+            <thead><tr>
+              <th>N° MR</th><th>Spécification Technique</th><th>Date Demande</th><th>Heat No</th>
+              <th>Qté Commandée</th><th>Qté Livrée</th><th>Reste à Livrer</th>
+              <th>Livraison %</th><th>Date Livraison</th><th>Statut</th>
+              <th class="write-lockable">Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== QUALITE ===== -->
+    <div id="topic-qualite" class="topic-section">
+      <div class="topic-header">
+        <div><h2><i class="fa-solid fa-file-shield" style="color:var(--gold-light);margin-right:10px;"></i>QA/QC — RFI & NCR</h2><p>Registre d'inspections et d'écarts de conformité</p></div>
+        <div class="topic-header-badge">Quality Register</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-file-shield"></i> Registre QA/QC — Inspections & Non-Conformités</div>
+        <div class="quick-add-form write-lockable">
+          <div class="form-field"><label>N° Fiche</label><input type="text" id="q_no" value="NCR-GCB-005"></div>
+          <div class="form-field"><label>Désignation Zone</label><input type="text" id="q_item" placeholder="Défaut alignement bride"></div>
+          <div class="form-field"><label>Type</label>
+            <select id="q_type">
+              <option value="RFI (Inspection)">RFI (Inspection)</option>
+              <option value="NCR (Non-Conformité)">NCR (Non-Conformité)</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Responsable</label><input type="text" id="q_resp" value="M. Touati (QC)"></div>
+          <div class="form-field"><label>Action (CAPA)</label><input type="text" id="q_capa" value="Meulage complet"></div>
+          <div class="form-field"><label>Date Constat</label><input type="date" id="q_date" value="2026-06-18"></div>
+          <div class="form-field"><label>Visa Statut</label>
+            <select id="q_status">
+              <option value="Ouvert / En Attente">Ouvert / En Attente</option>
+              <option value="Approuvé & Clos">Approuvé & Clos</option>
+            </select>
+          </div>
+          <button class="btn btn-success" onclick="addQualiteRow()"><i class="fa-solid fa-plus"></i> Consigner</button>
+        </div>
+        <div class="table-container">
+          <table class="gcb-table" id="qualiteTable">
+            <thead><tr>
+              <th>N° Fiche</th><th>Zone & Élément Inspecté</th><th>Type</th>
+              <th>Responsable</th><th>Plan Correctif (CAPA)</th><th>Date</th>
+              <th>Statut Visa</th><th class="write-lockable">Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ARTICLES / DA ===== -->
+    <div id="topic-articles" class="topic-section">
+      <div class="topic-header">
+        <div><h2><i class="fa-solid fa-dolly" style="color:var(--gold-light);margin-right:10px;"></i>Supply Chain — DA & PO</h2><p>Demandes d'Articles et circuit appro</p></div>
+        <div class="topic-header-badge">Procurement</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-dolly"></i> Suivi des Demandes d'Articles (DA)</div>
+        <div class="quick-add-form write-lockable">
+          <div class="form-field"><label>N° DA</label><input type="text" id="da_id" value="DA-GCB-094"></div>
+          <div class="form-field"><label>Description</label><input type="text" id="da_desc" placeholder="Transmetteurs radar"></div>
+          <div class="form-field"><label>Code Budget</label><input type="text" id="da_code" value="CAPEX-INST"></div>
+          <div class="form-field"><label>État Circuit</label>
+            <select id="da_step">
+              <option value="En Consultation">En Consultation Fournisseurs</option>
+              <option value="PO Émis">PO Émis (Commande validée)</option>
+            </select>
+          </div>
+          <button class="btn btn-success" onclick="addDARow()"><i class="fa-solid fa-plus"></i> Insérer</button>
+        </div>
+        <div class="table-container">
+          <table class="gcb-table" id="daTable">
+            <thead><tr>
+              <th>N° DA</th><th>Description Technique</th><th>Imputation Budget</th>
+              <th>Circuit Appro</th><th class="write-lockable">Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SOUS-TRAITANTS ===== -->
+    <div id="topic-soustraitant" class="topic-section">
+      <div class="topic-header">
+        <div><h2><i class="fa-solid fa-handshake" style="color:var(--gold-light);margin-right:10px;"></i>Gestion des Sous-Traitants</h2><p>Suivi contractuel, mode de passation et contrôle budgétaire DRO</p></div>
+        <div class="topic-header-badge">Subcontracts</div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue">
+          <i class="fa-solid fa-file-contract kpi-icon"></i>
+          <div class="kpi-label">Total Contrats</div>
+          <div class="kpi-value" id="st-total-count">0</div>
+          <div class="kpi-sub">Sous-traitants enregistrés</div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <i class="fa-solid fa-coins kpi-icon"></i>
+          <div class="kpi-label">Montant DRO (déclaré)</div>
+          <div class="kpi-value" style="font-size:1.1rem;" id="st-dro-total">— DA</div>
+          <div class="kpi-sub">Budget sous-traitance global</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <i class="fa-solid fa-receipt kpi-icon"></i>
+          <div class="kpi-label">Total Facturé</div>
+          <div class="kpi-value" style="font-size:1.1rem;" id="st-facture-total">— DA</div>
+          <div class="kpi-sub">Cumul factures reçues</div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <i class="fa-solid fa-scale-unbalanced kpi-icon"></i>
+          <div class="kpi-label">Écart DRO / Facturé</div>
+          <div class="kpi-value" style="font-size:1.1rem;" id="st-ecart-total">— DA</div>
+          <div class="kpi-sub">Dépassement (rouge) / Économie</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-plus-circle"></i> Enregistrement d'un Sous-Traitant</div>
+        <div class="quick-add-form write-lockable" style="grid-template-columns:repeat(auto-fit,minmax(135px,1fr));">
+          <div class="form-field"><label>Nom du Sous-Traitant</label><input type="text" id="st_nom" placeholder="SARL Meca-Tech"></div>
+          <div class="form-field"><label>Désignation Contrat / BC</label><input type="text" id="st_designation" placeholder="Travaux tuyauterie"></div>
+          <div class="form-field"><label>N° Contrat ou BC</label><input type="text" id="st_num_contrat" placeholder="CT-2026-042"></div>
+          <div class="form-field"><label>Date Contrat / BC</label><input type="date" id="st_date_contrat"></div>
+          <div class="form-field"><label>Type de Passation</label>
+            <select id="st_passation">
+              <option value="Consultation Fournisseur">Consultation Fournisseur</option>
+              <option value="AON">AON (Appel d'Offres National)</option>
+              <option value="Gré à Gré Simple">Gré à Gré Simple</option>
+              <option value="Commande Sans Consultation">Commande Sans Consultation</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Montant DRO (DA)</label><input type="number" id="st_montant_dro" placeholder="0"></div>
+          <div class="form-field"><label>Montant Facturé (DA)</label><input type="number" id="st_montant_facture" placeholder="0"></div>
+          <div class="form-field"><label>Statut</label>
+            <select id="st_statut">
+              <option value="En Cours">En Cours</option>
+              <option value="Réceptionné">Réceptionné (Clôturé)</option>
+              <option value="Suspendu">Suspendu</option>
+              <option value="Résilié">Résilié</option>
+            </select>
+          </div>
+          <button class="btn btn-success" onclick="addSTRow()" style="align-self:flex-end;"><i class="fa-solid fa-plus"></i> Enregistrer</button>
+        </div>
+
+        <div class="table-container">
+          <table class="gcb-table" id="stTable">
+            <thead><tr>
+              <th>#</th>
+              <th>Nom du Sous-Traitant</th>
+              <th>Désignation Contrat / BC</th>
+              <th>N° Contrat / BC</th>
+              <th>Date Contrat</th>
+              <th>Type de Passation</th>
+              <th>Montant DRO (DA)</th>
+              <th>Montant Facturé (DA)</th>
+              <th>Écart (DA)</th>
+              <th>Statut</th>
+              <th class="write-lockable">Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ADMIN ===== -->
+    <div id="topic-admin" class="topic-section">
+      <div class="card" style="border-top:4px solid var(--danger);">
+        <div class="card-title" style="color:var(--danger);"><i class="fa-solid fa-user-shield"></i> Panneau d'Administration : Attribution des Privilèges</div>
+        <div class="card-subtitle">Validez ou modifiez les accès de vos collaborateurs instantanément.</div>
+        <div class="table-container">
+          <table class="gcb-table" id="usersManagementTable">
+            <thead><tr>
+              <th>Collaborateur</th><th>Identifiant Email</th>
+              <th>Rôle / Privilèges</th><th>Action</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLtHwweXO7UMHMHndD9opPgI5bXPdTRqs",
+    authDomain: "projectcontroladrar.firebaseapp.com",
+    projectId: "projectcontroladrar",
+    storageBucket: "projectcontroladrar.firebasestorage.app",
+    messagingSenderId: "808739555275",
+    appId: "1:808739555275:web:295e3c571fdc958e0a584e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.currentUser = null;
+  window.isSignUpMode = false;
+  window.sCurveChart = null;
+  window.logisticsChart = null;
+  window.qualityChart = null;
+  window.activeProjectId = 'p1';
+  window.allProjectsList = [];
+  window.currentProjectData = { baseline: { startDate: '', endDate: '', values: [] }, contract: {}, planning:[], stock:[], quality:[], da:[], soustraitants:[], tdb: {} };
+  window.globalUsersList = [];
+
+  document.getElementById('dash-date-badge').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // LISTENERS
+  onSnapshot(doc(db,"config","projects_list"), async (snap) => {
+    if(snap.exists()) { window.allProjectsList = snap.data().list || []; }
+    else {
+      window.allProjectsList = [{id:'p1',name:'Nouveau Dépôt de Carburant - Béchar (EPC)'},{id:'p2',name:'Centre de Remplissage LPG - Béchar'}];
+      await setDoc(doc(db,"config","projects_list"),{list:window.allProjectsList});
+    }
+    loadProjectsDropdown();
+  });
+
+  onSnapshot(doc(db,"config","users_list"), async (snap) => {
+    if(snap.exists()) { window.globalUsersList = snap.data().users || []; }
+    else {
+      window.globalUsersList = [
+        {email:'admin@gcb.dz',name:'Responsable Principal',password:'admin123',role:'admin'},
+        {email:'ingenieur.planning@gcb.dz',name:'Planning Team',password:'password123',role:'editor'}
+      ];
+      await setDoc(doc(db,"config","users_list"),{users:window.globalUsersList});
+    }
+    if(window.currentUser && window.currentUser.role==='admin') renderTablesFromDB();
+  });
+
+  window.hookProjectRealtime = function(projectId) {
+    onSnapshot(doc(db,"projects_data",projectId), async (docSnap) => {
+      if(docSnap.exists()) {
+        window.currentProjectData = docSnap.data();
+        // Initialize missing fields for backward compatibility
+        if(!window.currentProjectData.soustraitants) window.currentProjectData.soustraitants = [];
+        if(!window.currentProjectData.baseline || !window.currentProjectData.baseline.values) {
+             window.currentProjectData.baseline = { startDate: '', endDate: '', values: [] };
+        }
+        if (!window.currentProjectData.tdb) window.currentProjectData.tdb = {};
+        if (!window.currentProjectData.contract) window.currentProjectData.contract = {};
+
+      } else {
+        window.currentProjectData = {
+          baseline: { startDate: '', endDate: '', values: [] },
+          contract: {},
+          soustraitants: [],
+          tdb: {},
+          planning: [],
+          stock: [],
+          quality: [],
+          da:[]
+        };
+        await setDoc(doc(db,"projects_data",projectId),window.currentProjectData);
+      }
+      const dbRef = window.currentProjectData;
+      // Load baseline data into UI
+      const { startDate, endDate } = dbRef.baseline;
+      document.getElementById('baseline_start_date').value = startDate || '';
+      document.getElementById('baseline_end_date').value = endDate || '';
+      generateBaselineFields(dbRef.baseline.values);
+
+      // Load contract info
+      loadContractInfo(dbRef.contract);
+
+      renderTablesFromDB();
+      initCharts();
+      recalculateAllEPCData();
+      renderTDBHistoryPanel();
+    });
+  };
+
+  window.toggleAuthMode = function() {
+    window.isSignUpMode = !window.isSignUpMode;
+    document.getElementById('authTitle').innerText = window.isSignUpMode?"Créer un profil PMIS GCB":"PMIS — Direction Contrôle de Projet";
+    document.getElementById('fullNameGroup').style.display = window.isSignUpMode?"block":"none";
+    document.getElementById('roleSelectionGroup').style.display = window.isSignUpMode?"block":"none";
+  };
+
+  window.processAuth = async function() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const name = document.getElementById('authName').value.trim();
+    const role = document.getElementById('authRole').value;
+    if(window.isSignUpMode) {
+      if(!email||!password||!name){alert("Remplissez tous les champs.");return;}
+      if(window.globalUsersList.find(u=>u.email===email)){alert("Email déjà utilisé.");return;}
+      window.globalUsersList.push({email,name,password,role});
+      await setDoc(doc(db,"config","users_list"),{users:window.globalUsersList});
+      alert("Compte créé ! Connectez-vous.");
+      window.toggleAuthMode();
+    } else {
+      const found = window.globalUsersList.find(u=>u.email===email&&u.password===password);
+      if(found){window.currentUser=found;launchApplication();}
+      else{alert("Identifiants incorrects.");}
+    }
+  };
+
+  function launchApplication() {
+    document.getElementById('authOverlay').style.display='none';
+    document.getElementById('appContainer').style.display='block';
+    document.getElementById('userDisplayEmail').innerText = window.currentUser.name||window.currentUser.email;
+    document.getElementById('userDisplayRole').innerText = window.currentUser.role;
+    if(window.currentUser.role==='admin' || window.currentUser.role==='editor') {
+        document.getElementById('nav-admin-only').style.display='flex';
+    }
+    applyRolePermissions();
+    loadProjectsDropdown();
+    window.updateProjectView();
+  }
+
+  function applyRolePermissions() {
+    const isViewer = window.currentUser.role==='viewer';
+    document.querySelectorAll('.write-lockable').forEach(el=>{
+      if(isViewer) el.classList.add('write-restricted');
+      else el.classList.remove('write-restricted');
+    });
+    document.querySelectorAll('#tdbTable input[type="number"]').forEach(input => input.disabled = isViewer);
+
+  }
+
+  window.logout = function() {
+    window.currentUser=null;
+    document.getElementById('appContainer').style.display='none';
+    document.getElementById('authOverlay').style.display='flex';
+  };
+
+  function loadProjectsDropdown() {
+    const select = document.getElementById('projectSelect');
+    if(!select) return;
+    select.innerHTML='';
+    window.allProjectsList.forEach(p=>{select.innerHTML+=`<option value="${p.id}">${p.name}</option>`;});
+    select.value=window.activeProjectId;
+  }
+
+  window.createNewProject = async function() {
+    const pName = document.getElementById('newProjectName').value.trim();
+    if(!pName){alert("Nom invalide.");return;}
+    const newId='p_'+Date.now();
+    window.allProjectsList.push({id:newId,name:pName});
+    await setDoc(doc(db,"config","projects_list"),{list:window.allProjectsList});
+    await setDoc(doc(db,"projects_data",newId),{baseline:{startDate:'',endDate:'',values:[]}, contract:{}, planning:[],stock:[],quality:[],da:[],soustraitants:[],tdb:{}});
+    document.getElementById('newProjectName').value='';
+    window.activeProjectId=newId;
+    loadProjectsDropdown();
+    window.updateProjectView();
+    alert("Projet initialisé sur le Cloud !");
+  };
+
+  window.updateProjectView = function() {
+    const select = document.getElementById('projectSelect');
+    if(!select||select.options.length===0) return;
+    window.activeProjectId = select.value;
+    document.getElementById('currentProjectDisplay').innerText = select.options[select.selectedIndex].text;
+    window.hookProjectRealtime(window.activeProjectId);
+  };
+
+  // HELPERS
+  function fmtMoney(val) {
+    const n = parseFloat(val)||0;
+    if(Math.abs(n)>=1000000) return (n/1000000).toFixed(2)+'M DA';
+    if(Math.abs(n)>=1000) return (n/1000).toFixed(0)+'K DA';
+    return n.toLocaleString('fr-DZ')+' DA';
+  }
+
+  function passationBadge(p) {
+    const map={'AON':'passation-aon','Consultation Fournisseur':'passation-cf','Gré à Gré Simple':'passation-gre','Commande Sans Consultation':'passation-cs'};
+    return `<span class="passation-badge ${map[p]||'passation-cs'}">${p}</span>`;
+  }
+
+  function deliveryBar(qtyCmd, qtyLiv) {
+    const cmd=parseFloat(qtyCmd)||0; const liv=parseFloat(qtyLiv)||0;
+    if(cmd===0) return '<span style="color:#94A3B8;font-size:.75rem;">N/A</span>';
+    const pct=Math.min((liv/cmd)*100,100).toFixed(0);
+    const cls=pct>=100?'':(pct>=50?'warn':'low');
+    return `<div style="display:flex;align-items:center;gap:6px;"><div class="delivery-progress-bar"><div class="delivery-progress-fill ${cls}" style="width:${pct}%"></div></div><span style="font-size:.75rem;font-weight:700;min-width:30px;">${pct}%</span></div>`;
+  }
+
+  // RENDER
+  function renderTablesFromDB() {
+    const dbRef = window.currentProjectData;
+    const isViewer = window.currentUser ? window.currentUser.role==='viewer' : true;
+
+    // Planning
+    const pBody = document.querySelector('#planningTable tbody');
+    if(pBody) {
+      pBody.innerHTML='';
+      (dbRef.planning||[]).forEach((p,idx)=>{
+        pBody.innerHTML+=`<tr>
+          <td><span class="badge badge-info">${p.wbs}</span></td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('planning',${idx},'task',this.innerText)">${p.task}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('planning',${idx},'weight',this.innerText)" style="font-weight:700;">${p.weight}%</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('planning',${idx},'progress',this.innerText)" style="color:var(--info);font-weight:700;">${p.progress}%</td>
+          <td>${p.start}</td><td>${p.end}</td>
+          <td class="w-contrib" style="font-family:'Roboto Mono',monospace;">0.00 %</td>
+          <td class="write-lockable ${isViewer?'write-restricted':''}"><button class="btn btn-danger-icon" onclick="deleteItem('planning',${idx})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+      });
+    }
+
+    // Stock
+    const sBody = document.querySelector('#stockTable tbody');
+    if(sBody) {
+      sBody.innerHTML='';
+      (dbRef.stock||[]).forEach((s,idx)=>{
+        let sClass=s.status==='Sur Site / Reçu'?'status-received':(s.status==='En Transit'?'status-transit':'status-alert');
+        const qtyCmd=parseFloat(s.qty)||0; const qtyLiv=parseFloat(s.qty_livree)||0;
+        const reste=Math.max(qtyCmd-qtyLiv,0);
+        sBody.innerHTML+=`<tr>
+          <td><span class="badge badge-info">${s.mr}</span></td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('stock',${idx},'item',this.innerText)">${s.item}</td>
+          <td>${s.date}</td>
+          <td style="font-family:'Roboto Mono',monospace;">${s.heat}</td>
+          <td style="font-weight:700;">${qtyCmd}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLiveParse('stock',${idx},'qty_livree',this.innerText)" style="color:var(--success);font-weight:700;">${qtyLiv}</td>
+          <td style="color:${reste>0?'var(--danger)':'var(--success)'};font-weight:700;">${reste}</td>
+          <td>${deliveryBar(qtyCmd,qtyLiv)}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('stock',${idx},'date_livraison',this.innerText)">${s.date_livraison||'—'}</td>
+          <td><select class="table-select ${sClass}" ${isViewer?'disabled':''} onchange="updateDBStatus('stock',${idx},this.value,this)">
+            <option value="Sur Site / Reçu" ${s.status==='Sur Site / Reçu'?'selected':''}>Sur Site / Reçu</option>
+            <option value="En Transit" ${s.status==='En Transit'?'selected':''}>En Transit</option>
+            <option value="Rupture / Attente" ${s.status==='Rupture / Attente'?'selected':''}>Rupture / Attente</option>
+          </select></td>
+          <td class="write-lockable ${isViewer?'write-restricted':''}"><button class="btn btn-danger-icon" onclick="deleteItem('stock',${idx})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+      });
+    }
+
+    // Quality
+    const qBody = document.querySelector('#qualiteTable tbody');
+    if(qBody) {
+      qBody.innerHTML='';
+      (dbRef.quality||[]).forEach((q,idx)=>{
+        let tBadge=q.type.startsWith('NCR')?'badge-danger':'badge-info';
+        let sClass=q.status==='Approuvé & Clos'?'status-received':'status-alert';
+        qBody.innerHTML+=`<tr>
+          <td><span class="badge ${tBadge}">${q.no}</span></td>
+          <td>${q.item}</td>
+          <td><span class="badge ${tBadge}">${q.type}</span></td>
+          <td>${q.resp}</td><td>${q.capa}</td><td>${q.date}</td>
+          <td><select class="table-select ${sClass}" ${isViewer?'disabled':''} onchange="updateDBStatus('quality',${idx},this.value,this)">
+            <option value="Ouvert / En Attente" ${q.status==='Ouvert / En Attente'?'selected':''}>Ouvert / En Attente</option>
+            <option value="Approuvé & Clos" ${q.status==='Approuvé & Clos'?'selected':''}>Approuvé & Clos</option>
+          </select></td>
+          <td class="write-lockable ${isViewer?'write-restricted':''}"><button class="btn btn-danger-icon" onclick="deleteItem('quality',${idx})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+      });
+    }
+
+    // DA
+    const daBody = document.querySelector('#daTable tbody');
+    if(daBody) {
+      daBody.innerHTML='';
+      (dbRef.da||[]).forEach((d,idx)=>{
+        let sClass=d.step.startsWith('PO')?'status-transit':'status-alert';
+        daBody.innerHTML+=`<tr>
+          <td><span class="badge badge-info">${d.id}</span></td>
+          <td>${d.desc}</td><td>${d.code}</td>
+          <td><select class="table-select ${sClass}" ${isViewer?'disabled':''} onchange="updateDBStatus('da',${idx},this.value,this)">
+            <option value="En Consultation" ${d.step==='En Consultation'?'selected':''}>En Consultation Fournisseurs</option>
+            <option value="PO Émis" ${d.step==='PO Émis'?'selected':''}>PO Émis (Commande validée)</option>
+          </select></td>
+          <td class="write-lockable ${isViewer?'write-restricted':''}"><button class="btn btn-danger-icon" onclick="deleteItem('da',${idx})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+      });
+    }
+
+    // Sous-Traitants
+    const stBody = document.querySelector('#stTable tbody');
+    if(stBody) {
+      stBody.innerHTML='';
+      (dbRef.soustraitants||[]).forEach((st,idx)=>{
+        const dro=parseFloat(st.montant_dro)||0;
+        const fact=parseFloat(st.montant_facture)||0;
+        const ecart=fact-dro;
+        const ecartClass=ecart>0?'montant-deficit':'montant-ok';
+        const ecartSign=ecart>0?'+':'';
+        const stClass=st.statut==='En Cours'?'status-transit':(st.statut==='Réceptionné'?'status-received':'status-alert');
+        stBody.innerHTML+=`<tr>
+          <td style="font-weight:700;color:var(--navy-light);">${idx+1}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('soustraitants',${idx},'nom',this.innerText)" style="font-weight:700;">${st.nom}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLive('soustraitants',${idx},'designation',this.innerText)">${st.designation}</td>
+          <td><span class="badge badge-info">${st.num_contrat}</span></td>
+          <td>${st.date_contrat||'—'}</td>
+          <td>${passationBadge(st.passation)}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLiveParse('soustraitants',${idx},'montant_dro',this.innerText)" class="montant-cell">${fmtMoney(dro)}</td>
+          <td ${!isViewer?'contenteditable="true"':''} onblur="editLiveParse('soustraitants',${idx},'montant_facture',this.innerText)" class="montant-cell">${fmtMoney(fact)}</td>
+          <td class="montant-cell ${ecartClass}">${ecartSign}${fmtMoney(ecart)}</td>
+          <td><select class="table-select ${stClass}" ${isViewer?'disabled':''} onchange="updateSTStatus(${idx},this.value)">
+            <option value="En Cours" ${st.statut==='En Cours'?'selected':''}>En Cours</option>
+            <option value="Réceptionné" ${st.statut==='Réceptionné'?'selected':''}>Réceptionné</option>
+            <option value="Suspendu" ${st.statut==='Suspendu'?'selected':''}>Suspendu</option>
+            <option value="Résilié" ${st.statut==='Résilié'?'selected':''}>Résilié</option>
+          </select></td>
+          <td class="write-lockable ${isViewer?'write-restricted':''}"><button class="btn btn-danger-icon" onclick="deleteItem('soustraitants',${idx})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
+      });
+    }
+
+    // Admin
+    if(window.currentUser && window.currentUser.role==='admin') {
+      const uBody = document.querySelector('#usersManagementTable tbody');
+      if(uBody) {
+        uBody.innerHTML='';
+        window.globalUsersList.forEach((u,uIdx)=>{
+          if(u.email===window.currentUser.email) return;
+          uBody.innerHTML+=`<tr>
+            <td><strong>${u.name||'Collaborateur'}</strong></td><td>${u.email}</td>
+            <td><select class="table-select" onchange="changeUserRoleFromAdmin(${uIdx},this.value)">
+              <option value="viewer" ${u.role==='viewer'?'selected':''}>Lecture Seule</option>
+              <option value="editor" ${u.role==='editor'?'selected':''}>Éditeur</option>
+              <option value="admin" ${u.role==='admin'?'selected':''}>Administrateur</option>
+            </select></td>
+            <td><button class="btn btn-danger" style="padding:.3rem .6rem;font-size:.7rem;" onclick="deleteUserFromAdmin(${uIdx})">Supprimer</button></td>
+          </tr>`;
+        });
+      }
+    }
+  }
+
+  // EDIT
+  window.editLive = async function(section,index,field,value) {
+    window.currentProjectData[section][index][field]=value;
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{[section]:window.currentProjectData[section]});
+  };
+  window.editLiveParse = async function(section,index,field,value) {
+    let clean=value.replace(/[^0-9.-]/g,'').trim();
+    window.currentProjectData[section][index][field]=parseFloat(clean)||0;
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{[section]:window.currentProjectData[section]});
+    recalculateAllEPCData();
+  };
+  window.updateDBStatus = async function(section,index,newVal) {
+    if(section==='da') window.currentProjectData[section][index]['step']=newVal;
+    else window.currentProjectData[section][index]['status']=newVal;
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{[section]:window.currentProjectData[section]});
+  };
+  window.updateSTStatus = async function(index,newVal) {
+    window.currentProjectData.soustraitants[index].statut=newVal;
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{soustraitants:window.currentProjectData.soustraitants});
+  };
+  window.deleteItem = async function(section,index) {
+    if(confirm("Supprimer cet enregistrement ?")) {
+      window.currentProjectData[section].splice(index,1);
+      await updateDoc(doc(db,"projects_data",window.activeProjectId),{[section]:window.currentProjectData[section]});
+    }
+  };
+  window.changeUserRoleFromAdmin = async function(userIndex,newRole) {
+    window.globalUsersList[userIndex].role=newRole;
+    await setDoc(doc(db,"config","users_list"),{users:window.globalUsersList});
+    alert("Droits mis à jour !");
+  };
+  window.deleteUserFromAdmin = async function(userIndex) {
+    if(confirm("Révoquer cet accès ?")) {
+      window.globalUsersList.splice(userIndex,1);
+      await setDoc(doc(db,"config","users_list"),{users:window.globalUsersList});
+    }
+  };
+
+  // ADD ROWS
+  window.addPlanningRow = async function() {
+    window.currentProjectData.planning.push({
+      wbs:document.getElementById('p_wbs').value,
+      task:document.getElementById('p_task').value||'Sans nom',
+      weight:parseFloat(document.getElementById('p_weight').value)||0,
+      progress:parseFloat(document.getElementById('p_progress').value)||0,
+      start:document.getElementById('p_start').value,
+      end:document.getElementById('p_end').value
+    });
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{planning:window.currentProjectData.planning});
+  };
+  window.addStockRow = async function() {
+    window.currentProjectData.stock.push({
+      mr:document.getElementById('s_mr').value,
+      item:document.getElementById('s_item').value||'Matériau',
+      date:document.getElementById('s_date').value,
+      heat:document.getElementById('s_heat').value,
+      qty:parseFloat(document.getElementById('s_qty').value)||0,
+      qty_livree:parseFloat(document.getElementById('s_qty_livree').value)||0,
+      date_livraison:document.getElementById('s_date_livraison').value,
+      status:document.getElementById('s_status').value
+    });
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{stock:window.currentProjectData.stock});
+  };
+  window.addQualiteRow = async function() {
+    window.currentProjectData.quality.push({
+      no:document.getElementById('q_no').value,
+      item:document.getElementById('q_item').value,
+      type:document.getElementById('q_type').value,
+      resp:document.getElementById('q_resp').value,
+      capa:document.getElementById('q_capa').value,
+      date:document.getElementById('q_date').value,
+      status:document.getElementById('q_status').value
+    });
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{quality:window.currentProjectData.quality});
+  };
+  window.addDARow = async function() {
+    window.currentProjectData.da.push({
+      id:document.getElementById('da_id').value,
+      desc:document.getElementById('da_desc').value,
+      code:document.getElementById('da_code').value,
+      step:document.getElementById('da_step').value
+    });
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{da:window.currentProjectData.da});
+  };
+  window.addSTRow = async function() {
+    if(!window.currentProjectData.soustraitants) window.currentProjectData.soustraitants=[];
+    window.currentProjectData.soustraitants.push({
+      nom:document.getElementById('st_nom').value||'Sous-Traitant',
+      designation:document.getElementById('st_designation').value,
+      num_contrat:document.getElementById('st_num_contrat').value,
+      date_contrat:document.getElementById('st_date_contrat').value,
+      passation:document.getElementById('st_passation').value,
+      montant_dro:parseFloat(document.getElementById('st_montant_dro').value)||0,
+      montant_facture:parseFloat(document.getElementById('st_montant_facture').value)||0,
+      statut:document.getElementById('st_statut').value
+    });
+    await updateDoc(doc(db,"projects_data",window.activeProjectId),{soustraitants:window.currentProjectData.soustraitants});
+    ['st_nom','st_designation','st_num_contrat','st_montant_dro','st_montant_facture'].forEach(id=>document.getElementById(id).value='');
+  };
+
+    // ===== NEW BASELINE LOGIC =====
+    window.generateBaselineFields = function(savedValues = []) {
+        const startDate = document.getElementById('baseline_start_date').value;
+        const endDate = document.getElementById('baseline_end_date').value;
+        const container = document.getElementById('baseline-fields-container');
+
+        if (!startDate || !endDate) {
+            container.innerHTML = `<p style="color:#6B7585; font-size:0.85rem; grid-column: 1 / -1;">Veuillez définir une période valide pour générer les champs.</p>`;
+            return;
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        container.innerHTML = '';
+        let index = 0;
+
+        // Ensure start date is the first of the month for accurate looping
+        let currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
+
+        while (currentDate <= end) {
+            const monthYear = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            const value = savedValues[index] !== undefined ? savedValues[index] : '';
+            const field = `
+                <div class="form-field">
+                    <label>${monthYear} (%)</label>
+                    <input type="number" class="baseline-input" value="${value}" placeholder="Cumulé %">
+                </div>`;
+            container.innerHTML += field;
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            index++;
+        }
+    }
+
+    window.applyNewBaseline = async function() {
+        const inputs = document.querySelectorAll('#baseline-fields-container .baseline-input');
+        const values = Array.from(inputs).map(input => parseFloat(input.value) || 0);
+
+        window.currentProjectData.baseline = {
+            startDate: document.getElementById('baseline_start_date').value,
+            endDate: document.getElementById('baseline_end_date').value,
+            values: values
+        };
+
+        await updateDoc(doc(db, "projects_data", window.activeProjectId), { baseline: window.currentProjectData.baseline });
+        alert("Baseline synchronisée !");
+        switchTopic('dashboard');
+        initCharts(); // Re-initialize charts with new baseline
+        recalculateAllEPCData();
+    };
+
+  // RECALCULATE
+  function recalculateAllEPCData() {
+    const dbRef=window.currentProjectData;
+    let totalProg=0;
+    const rows=document.querySelectorAll('#planningTable tbody tr');
+    (dbRef.planning||[]).forEach((p,idx)=>{
+      let c=(p.weight*p.progress)/100;
+      if(rows[idx]) rows[idx].querySelector('.w-contrib').innerText=c.toFixed(2)+" %";
+      totalProg+=c;
+    });
+    document.getElementById('dash-physical-progress').innerText=totalProg.toFixed(2)+"%";
+
+    if(window.sCurveChart && dbRef.baseline && dbRef.baseline.values && dbRef.baseline.values.length > 0) {
+        const baselineValues = dbRef.baseline.values;
+        const actualData = new Array(baselineValues.length).fill(null); // Use null to not draw the line
+        let currentDate = new Date();
+
+        let startDate = new Date(dbRef.baseline.startDate);
+        let currentMonthDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+
+        for (let i = 0; i < baselineValues.length; i++) {
+            if (currentMonthDate <= currentDate) {
+                 actualData[i] = totalProg;
+            } else {
+                 break; 
+            }
+            currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+        }
+        window.sCurveChart.data.datasets[1].data = actualData;
+        window.sCurveChart.update();
+    }
+
+
+    let sRec=0,sTrans=0,sAlert=0;
+    (dbRef.stock||[]).forEach(s=>{
+      if(s.status==='Sur Site / Reçu') sRec++;
+      else if(s.status==='En Transit') sTrans++;
+      else sAlert++;
+    });
+    (dbRef.da||[]).forEach(d=>{
+      if(d.step==='PO Émis') sTrans++;
+      else sAlert++;
+    });
+    document.getElementById('dash-stock-alerts').innerText=sAlert;
+    document.getElementById('dash-transit-count').innerText=sTrans;
+    if(window.logisticsChart){window.logisticsChart.data.datasets[0].data=[sRec,sTrans,sAlert];window.logisticsChart.update();}
+
+    // QA/QC detailed
+    let rfiT=0,rfiO=0,rfiC=0,ncrT=0,ncrO=0,ncrC=0;
+    (dbRef.quality||[]).forEach(q=>{
+      if(q.type.startsWith('RFI')){rfiT++;if(q.status==='Approuvé & Clos')rfiC++;else rfiO++;}
+      else{ncrT++;if(q.status==='Approuvé & Clos')ncrC++;else ncrO++;}
+    });
+    const totalQ=rfiT+ncrT; const totalCl=rfiC+ncrC;
+    const resRate=totalQ>0?Math.round((totalCl/totalQ)*100):0;
+    const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.innerText=v;};
+    setEl('dash-rfi-total',rfiT); setEl('dash-rfi-open',rfiO+' ouvertes'); setEl('dash-rfi-closed',rfiC+' closes');
+    setEl('dash-ncr-total',ncrT); setEl('dash-ncr-open2',ncrO+' ouvertes'); setEl('dash-ncr-closed2',ncrC+' résolues');
+    setEl('dash-resolution-rate',resRate+'%'); setEl('dash-active-ncr',ncrO);
+    if(window.qualityChart){window.qualityChart.data.datasets[0].data=[rfiC,rfiO,ncrO,ncrC];window.qualityChart.update();}
+
+    // Sous-traitants
+    let stCnt=0,stDro=0,stFact=0;
+    (dbRef.soustraitants||[]).forEach(st=>{stCnt++;stDro+=parseFloat(st.montant_dro)||0;stFact+=parseFloat(st.montant_facture)||0;});
+    const stEcart=stFact-stDro;
+    const ecartSign=stEcart>0?'+':'';
+    setEl('dash-st-count',stCnt); setEl('dash-st-dro',fmtMoney(stDro)); setEl('dash-st-facture',fmtMoney(stFact));
+    setEl('dash-st-ecart',ecartSign+fmtMoney(stEcart));
+    setEl('st-total-count',stCnt); setEl('st-dro-total',fmtMoney(stDro)); setEl('st-facture-total',fmtMoney(stFact));
+    setEl('st-ecart-total',ecartSign+fmtMoney(stEcart));
+    ['dash-st-ecart','st-ecart-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.color=stEcart>0?'var(--danger)':'var(--success)';});
+  }
+
+  window.switchTopic = function(topicId) {
+    document.querySelectorAll('.topic-section').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    document.getElementById('topic-'+topicId).classList.add('active');
+    const nav=Array.from(document.querySelectorAll('.nav-item')).find(i=>i.getAttribute('onclick')&&i.getAttribute('onclick').includes(topicId));
+    if(nav) nav.classList.add('active');
+  };
+
+  function initCharts() {
+    const dbRef=window.currentProjectData;
+    if(window.sCurveChart){window.sCurveChart.destroy();window.sCurveChart=null;}
+    if(window.logisticsChart){window.logisticsChart.destroy();window.logisticsChart=null;}
+    if(window.qualityChart){window.qualityChart.destroy();window.qualityChart=null;}
+
+    const ctx1=document.getElementById('mainDashboardChart');
+    if(ctx1 && dbRef.baseline && dbRef.baseline.startDate && dbRef.baseline.endDate) {
+        let labels = [];
+        let currentDate = new Date(dbRef.baseline.startDate);
+        // Adjust to ensure the loop includes the end date's month
+        let endDate = new Date(dbRef.baseline.endDate);
+        endDate.setDate(endDate.getDate() + 1); 
+
+        while(currentDate <= endDate) {
+            labels.push(currentDate.toLocaleDateString('fr-FR', {month:'short', year:'2-digit'}));
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+
+      window.sCurveChart=new Chart(ctx1,{type:'line',data:{
+        labels: labels,
+        datasets:[
+          {label:'Baseline (PV %)',data:dbRef.baseline.values,borderColor:'#C9991A',backgroundColor:'rgba(201,153,26,0.08)',borderWidth:3,tension:.4,fill:true, spanGaps: true},
+          {label:'Réel (EV %)',data:new Array(labels.length).fill(null),borderColor:'#1C2331',backgroundColor:'rgba(28,35,49,0.06)',borderWidth:3,fill:true,tension:.4, spanGaps: true}
+        ]
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}},scales:{y:{beginAtZero:true,max:110,ticks: {callback: function(value) {return value + '%'}}}}}});
+    }
+
+    const ctx2=document.getElementById('logisticsChart');
+    if(ctx2) {
+      window.logisticsChart=new Chart(ctx2,{type:'doughnut',data:{
+        labels:['Sur Site','En Transit','Rupture'],
+        datasets:[{data:[0,0,0],backgroundColor:['#27AE60','#F39C12','#E74C3C'],borderWidth:0}]
+      },options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}});
+    }
+
+    const ctx3=document.getElementById('qualityChart');
+    if(ctx3) {
+      window.qualityChart=new Chart(ctx3,{type:'bar',data:{
+        labels:['RFI Closes','RFI Ouvertes','NCR Ouvertes','NCR Résolues'],
+        datasets:[{label:'Fiches',data:[0,0,0,0],backgroundColor:['#27AE60','#2980B9','#E74C3C','#8E44AD'],borderRadius:4,borderWidth:0}]
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#F0F0F0'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}});
+    }
+  }
+    
+    // ===== MONTHLY DASHBOARD (TDB) LOGIC =====
+    const tdbInputs = document.querySelectorAll('#tdbTable input[type="number"]');
+    tdbInputs.forEach(input => input.addEventListener('input', calculateTDB));
+
+    function calculateTDB() {
+        const data = {};
+        // Read all input values
+        tdbInputs.forEach(input => {
+            const row = input.dataset.row;
+            const col = input.dataset.col;
+            if (!data[row]) data[row] = {};
+            data[row][col] = parseFloat(input.value) || 0;
+        });
+
+        // Calculate % for each row
+        Object.keys(data).forEach(row => {
+            data[row].pct_m = data[row].budget_m ? ((data[row].real_m / data[row].budget_m) * 100).toFixed(1) + '%' : '—';
+            data[row].pct_c = data[row].budget_c ? ((data[row].real_c / data[row].budget_c) * 100).toFixed(1) + '%' : '—';
+        });
+
+        // Calculate totals
+        const p_rows = ['p_70'];
+        const cd_rows = ['c_60', 'c_61', 'c_63','c_68'];
+        const ci_rows = ['ci_support', 'ci_siege'];
+
+        const totals = {
+            produits: sumRows(data, p_rows),
+            charges_directes: sumRows(data, cd_rows),
+            charges_indirectes: sumRows(data, ci_rows)
+        };
+        totals.charges_global = sumTotals(totals, ['charges_directes', 'charges_indirectes']);
+        totals.resultat = subtractTotals(totals.produits, totals.charges_global);
+
+        // Update UI with all calculated values
+        document.querySelectorAll('#tdbTable input[disabled]').forEach(input => {
+            const row = input.dataset.row || input.dataset.total;
+            const col = input.dataset.col;
+            let value;
+            if (input.dataset.total) { // It's a total row
+                 value = totals[row][col];
+            } else { // It's a calculated % in a data row
+                 value = data[row][col];
+            }
+            if(typeof value === 'number') value = value.toLocaleString('fr-FR');
+            input.value = value;
+        });
+    }
+
+    function sumRows(data, rowsToSum) {
+        const result = { budget_m: 0, real_m: 0, budget_c: 0, real_c: 0 };
+        rowsToSum.forEach(row => {
+            if (data[row]) {
+                result.budget_m += data[row].budget_m;
+                result.real_m += data[row].real_m;
+                result.budget_c += data[row].budget_c;
+                result.real_c += data[row].real_c;
+            }
+        });
+        result.pct_m = result.budget_m ? ((result.real_m / result.budget_m) * 100).toFixed(1) + '%' : '—';
+        result.pct_c = result.budget_c ? ((result.real_c / result.budget_c) * 100).toFixed(1) + '%' : '—';
+        return result;
+    }
+    
+    function sumTotals(totals, totalsToSum) {
+         const result = { budget_m: 0, real_m: 0, budget_c: 0, real_c: 0 };
+         totalsToSum.forEach(key => {
+             result.budget_m += totals[key].budget_m;
+             result.real_m += totals[key].real_m;
+             result.budget_c += totals[key].budget_c;
+             result.real_c += totals[key].real_c;
+         });
+        result.pct_m = result.budget_m ? ((result.real_m / result.budget_m) * 100).toFixed(1) + '%' : '—';
+        result.pct_c = result.budget_c ? ((result.real_c / result.budget_c) * 100).toFixed(1) + '%' : '—';
+        return result;
+    }
+
+    function subtractTotals(totalA, totalB) {
+        const result = {};
+        result.budget_m = totalA.budget_m - totalB.budget_m;
+        result.real_m = totalA.real_m - totalB.real_m;
+        result.budget_c = totalA.budget_c - totalB.budget_c;
+        result.real_c = totalA.real_c - totalB.real_c;
+        result.pct_m = '—';
+        result.pct_c = '—';
+        return result;
+    }
+
+    function getPreviousPeriodKey(year, month) {
+        const date = new Date(year, month, 1);
+        date.setMonth(date.getMonth() - 1);
+        const prevYear = date.getFullYear();
+        const prevMonth = date.getMonth(); // 0-11
+        return `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+    }
+
+    const MONTH_NAMES_TDB = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+    window.openNewPeriodModal = function() {
+        const now = new Date();
+        document.getElementById('modal-month-select').value = now.getMonth();
+        document.getElementById('modal-year-input').value = now.getFullYear();
+        document.getElementById('tdb-modal').style.display = 'flex';
+    }
+
+    window.confirmNewPeriod = function() {
+        const month = parseInt(document.getElementById('modal-month-select').value);
+        const year = document.getElementById('modal-year-input').value;
+        document.getElementById('tdb-modal').style.display = 'none';
+        document.getElementById('tdb-month-select').value = month;
+        document.getElementById('tdb-year-input').value = year;
+        loadTDBData();
+    }
+
+    function renderTDBHistoryPanel() {
+        const list = document.getElementById('tdb-history-list');
+        if (!list) return;
+        const tdbData = window.currentProjectData.tdb || {};
+        const keys = Object.keys(tdbData).sort().reverse();
+        if (keys.length === 0) {
+            list.innerHTML = '<div class="tdb-history-empty">Aucune période enregistrée.<br>Cliquez sur + Nouveau Mois.</div>';
+            return;
+        }
+        const curMonth = document.getElementById('tdb-month-select').value;
+        const curYear = document.getElementById('tdb-year-input').value;
+        const activePeriodKey = `${curYear}-${String(parseInt(curMonth)+1).padStart(2,'0')}`;
+
+        list.innerHTML = keys.map(key => {
+            const [yr, mo] = key.split('-');
+            const monthName = MONTH_NAMES_TDB[parseInt(mo)-1];
+            const isActive = key === activePeriodKey;
+            return `<div class="tdb-month-item ${isActive ? 'active' : ''}" onclick="selectTDBPeriod('${key}')">
+                <div class="tdb-month-label">
+                  <span class="tdb-month-name">${monthName}</span>
+                  <span class="tdb-month-year">${yr}</span>
+                </div>
+                <button class="tdb-month-del" onclick="event.stopPropagation();deleteTDBPeriod('${key}')" title="Supprimer"><i class="fa-solid fa-trash-can"></i></button>
+            </div>`;
+        }).join('');
+    }
+
+    window.selectTDBPeriod = function(key) {
+        const [yr, mo] = key.split('-');
+        document.getElementById('tdb-month-select').value = parseInt(mo) - 1;
+        document.getElementById('tdb-year-input').value = yr;
+        loadTDBData();
+    }
+
+    window.deleteTDBPeriod = async function(key) {
+        if (!confirm(`Supprimer les données de ${key} ?`)) return;
+        if (window.currentProjectData.tdb) {
+            delete window.currentProjectData.tdb[key];
+            await updateDoc(doc(db, "projects_data", window.activeProjectId), { tdb: window.currentProjectData.tdb });
+        }
+        renderTDBHistoryPanel();
+    }
+
+    window.loadTDBData = function() {
+        const year = document.getElementById('tdb-year-input').value;
+        const month = parseInt(document.getElementById('tdb-month-select').value, 10);
+        const periodKey = `${year}-${String(month+1).padStart(2, '0')}`;
+        
+        const monthName = MONTH_NAMES_TDB[month];
+        const labelEl = document.getElementById('tdb-period-label');
+        if (labelEl) labelEl.textContent = `${monthName} ${year}`;
+        const saveBtn = document.getElementById('tdb-save-btn');
+        if (saveBtn) saveBtn.style.display = '';
+
+        const periodData = window.currentProjectData.tdb ? window.currentProjectData.tdb[periodKey] : null;
+
+        if (periodData) {
+            tdbInputs.forEach(input => {
+                const row = input.dataset.row;
+                const col = input.dataset.col;
+                input.value = (periodData[row] && periodData[row][col] != null) ? periodData[row][col] : '';
+            });
+        } else {
+            const prevPeriodKey = getPreviousPeriodKey(year, month);
+            const prevPeriodData = window.currentProjectData.tdb ? window.currentProjectData.tdb[prevPeriodKey] : null;
+            tdbInputs.forEach(input => {
+                const row = input.dataset.row;
+                const col = input.dataset.col;
+                if (prevPeriodData && (col === 'budget_c' || col === 'real_c')) {
+                    input.value = (prevPeriodData[row] && prevPeriodData[row][col] != null) ? prevPeriodData[row][col] : '';
+                } else {
+                    input.value = '';
+                }
+            });
+        }
+        calculateTDB();
+        renderTDBHistoryPanel();
+    }
+    
+    window.saveTDBData = async function() {
+        const year = document.getElementById('tdb-year-input').value;
+        const month = parseInt(document.getElementById('tdb-month-select').value, 10);
+        const periodKey = `${year}-${String(month+1).padStart(2, '0')}`;
+
+        if (!window.currentProjectData.tdb) window.currentProjectData.tdb = {};
+
+        const dataToSave = {};
+        tdbInputs.forEach(input => {
+            const row = input.dataset.row;
+            const col = input.dataset.col;
+            if (!dataToSave[row]) dataToSave[row] = {};
+            dataToSave[row][col] = parseFloat(input.value) || 0;
+        });
+
+        window.currentProjectData.tdb[periodKey] = dataToSave;
+        
+        await updateDoc(doc(db, "projects_data", window.activeProjectId), {
+            tdb: window.currentProjectData.tdb
+        });
+
+        renderTDBHistoryPanel();
+        const btn = document.getElementById('tdb-save-btn');
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Sauvegardé !';
+            btn.style.background = 'var(--success)';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-save"></i> Sauvegarder'; btn.style.background = ''; }, 2000);
+        }
+    }
+
+    // ===== CONTRACT INFO LOGIC =====
+    const contractInputs = ['contract_amount_ht', 'contract_tva_rate', 'contract_amount_consumed'];
+    contractInputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', updateContractCalculations);
+    });
+
+    function updateContractCalculations() {
+        const amountHT = parseFloat(document.getElementById('contract_amount_ht').value) || 0;
+        const tvaRate = parseFloat(document.getElementById('contract_tva_rate').value) || 0;
+        const consumed = parseFloat(document.getElementById('contract_amount_consumed').value) || 0;
+
+        const amountTTC = amountHT * (1 + tvaRate / 100);
+        const percentage = amountTTC > 0 ? (consumed / amountTTC) * 100 : 0;
+        
+        document.getElementById('contract_amount_ttc').value = amountTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DA';
+        
+        const percText = document.getElementById('consumption-percentage-text');
+        const percBar = document.getElementById('consumption-percentage-bar');
+
+        percText.innerText = percentage.toFixed(2) + '%';
+        percBar.style.width = Math.min(percentage, 100) + '%';
+        
+        percBar.classList.remove('warn', 'danger');
+        if (percentage > 90) {
+            percBar.classList.add('danger');
+        } else if (percentage > 75) {
+            percBar.classList.add('warn');
+        }
+    }
+
+    function loadContractInfo(data = {}) {
+        document.getElementById('contract_number').value = data.number || '';
+        document.getElementById('contract_client').value = data.client || '';
+        document.getElementById('contract_passation_type').value = data.passationType || '';
+        document.getElementById('contract_amount_ht').value = data.amountHT || '';
+        document.getElementById('contract_tva_rate').value = data.tvaRate === undefined ? 19 : data.tvaRate;
+        document.getElementById('contract_amount_consumed').value = data.consumed || '';
+        document.getElementById('contract_duration').value = data.duration || '';
+        document.getElementById('contract_signature_date').value = data.signatureDate || '';
+        document.getElementById('contract_ods_date').value = data.odsDate || '';
+        updateContractCalculations();
+        updateContractBanner(data);
+    }
+
+    function updateContractBanner(data = {}) {
+        const amountHT = parseFloat(data.amountHT) || 0;
+        const tvaRate = parseFloat(data.tvaRate === undefined ? 19 : data.tvaRate) || 0;
+        const consumed = parseFloat(data.consumed) || 0;
+        const amountTTC = amountHT * (1 + tvaRate / 100);
+        const pct = amountTTC > 0 ? (consumed / amountTTC) * 100 : 0;
+
+        const fmt = (v) => v > 0 ? v.toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' DA' : '—';
+        document.getElementById('banner-contract-ttc').textContent = amountTTC > 0 ? amountTTC.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' DA' : '—';
+        document.getElementById('banner-contract-ht').textContent = 'HT : ' + fmt(amountHT);
+        document.getElementById('banner-consumed').textContent = fmt(consumed);
+        const bar = document.getElementById('banner-consumed-bar');
+        bar.style.width = Math.min(pct, 100) + '%';
+        bar.className = 'cb-progress-fill' + (pct > 90 ? ' critical' : pct > 75 ? '' : ' ok');
+        document.getElementById('banner-consumed-pct').textContent = pct > 0 ? pct.toFixed(1) + ' % du contrat TTC' : '— % du contrat TTC';
+
+        // Days remaining from ODS date + duration
+        const odsDate = data.odsDate;
+        const duration = parseInt(data.duration) || 0;
+        const daysEl = document.getElementById('banner-days-remaining');
+        const subEl = document.getElementById('banner-days-sub');
+        if (odsDate && duration > 0) {
+            const endDate = new Date(odsDate);
+            endDate.setMonth(endDate.getMonth() + duration);
+            const today = new Date();
+            const diff = Math.ceil((endDate - today) / (1000*60*60*24));
+            daysEl.textContent = diff > 0 ? diff + ' j' : '0 j';
+            daysEl.style.color = diff < 30 ? 'var(--danger)' : diff < 90 ? '#F8C471' : '#58D68D';
+            subEl.textContent = 'Fin prévue : ' + endDate.toLocaleDateString('fr-FR');
+        } else {
+            daysEl.textContent = '—';
+            subEl.textContent = 'ODS ou durée non définie';
+        }
+    }
+
+    window.saveContractInfo = async function() {
+        const contractData = {
+            number: document.getElementById('contract_number').value,
+            client: document.getElementById('contract_client').value,
+            passationType: document.getElementById('contract_passation_type').value,
+            amountHT: parseFloat(document.getElementById('contract_amount_ht').value) || 0,
+            tvaRate: parseFloat(document.getElementById('contract_tva_rate').value) || 0,
+            consumed: parseFloat(document.getElementById('contract_amount_consumed').value) || 0,
+            duration: parseInt(document.getElementById('contract_duration').value) || 0,
+            signatureDate: document.getElementById('contract_signature_date').value,
+            odsDate: document.getElementById('contract_ods_date').value,
+        };
+
+        window.currentProjectData.contract = contractData;
+        await updateDoc(doc(db, "projects_data", window.activeProjectId), {
+            contract: contractData
+        });
+        updateContractBanner(contractData);
+        alert('Informations du contrat enregistrées avec succès !');
+    };
+
+
+</script>
+</body>
+</html>
